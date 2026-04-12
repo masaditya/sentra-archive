@@ -7,13 +7,14 @@
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
             (function() {
-                const appearance = '{{ $appearance ?? "system" }}';
+                const appearance = '{{ $appearance ?? "light" }}';
 
-                if (appearance === 'system') {
+                if (appearance === 'light') {
                     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
                     if (prefersDark) {
-                        document.documentElement.classList.add('dark');
+                        // Keep it light if the user wants default light despite system pref
+                        // Or remove this block if we want to respect system pref only after initial load
                     }
                 }
             })();

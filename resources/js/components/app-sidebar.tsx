@@ -1,7 +1,6 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { LayoutGrid, Bell, Upload, Building2, Layers } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -10,54 +9,65 @@ import {
     SidebarFooter,
     SidebarHeader,
     SidebarMenu,
-    SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
+import type { NavItem, Auth } from '@/types';
 
 export function AppSidebar() {
+    const { auth } = usePage<Auth>().props;
+    const role = auth.user.role;
+
+    const mainNavItems: NavItem[] = role === 'admin' ? [
+        {
+            title: 'Dashboard Utama',
+            href: '/admin/dashboard',
+            icon: LayoutGrid,
+        },
+        {
+            title: 'Kelola OPD',
+            href: '/admin/organizations',
+            icon: Building2,
+        },
+        {
+            title: 'Notifikasi Global',
+            href: '/admin/notifications',
+            icon: Bell,
+        },
+    ] : [
+        {
+            title: 'Dashboard',
+            href: '/dashboard',
+            icon: LayoutGrid,
+        },
+        {
+            title: 'Notifikasi',
+            href: '/notifications',
+            icon: Bell,
+        },
+        {
+            title: 'Upload Data',
+            href: '/upload',
+            icon: Upload,
+        },
+    ];
+
     return (
-        <Sidebar collapsible="icon" variant="inset">
-            <SidebarHeader>
+        <Sidebar collapsible="icon" className="bg-[#223771] border-none">
+            <SidebarHeader className="bg-[#223771] p-5">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
+                        <Link href={role === 'admin' ? '/admin/dashboard' : '/dashboard'} prefetch className="group-data-[collapsible=icon]:hidden">
+                            <AppLogo />
+                        </Link>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent className="bg-[#223771] px-2 pt-6">
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
-            <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
+            <SidebarFooter className="bg-[#223771] p-4">
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

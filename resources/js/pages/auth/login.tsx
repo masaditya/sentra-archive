@@ -1,121 +1,94 @@
-import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
-import PasswordInput from '@/components/password-input';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import { register } from '@/routes';
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
+import AuthLayout from '@/layouts/auth-layout';
+import { Head, useForm } from '@inertiajs/react';
+import { Loader2, Layers } from 'lucide-react';
+import { FormEventHandler } from 'react';
 
-type Props = {
-    status?: string;
-    canResetPassword: boolean;
-    canRegister: boolean;
-};
+export default function Login({ status }: { status?: string }) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        username: '',
+        password: '',
+        remember: false,
+    });
 
-export default function Login({
-    status,
-    canResetPassword,
-    canRegister,
-}: Props) {
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        post('/login', {
+            onFinish: () => reset('password'),
+        });
+    };
+
     return (
-        <>
-            <Head title="Log in" />
+        <AuthLayout>
+            <Head title="Log in - SENTRA" />
 
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot password?
-                                        </TextLink>
-                                    )}
-                                </div>
-                                <PasswordInput
-                                    id="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Password"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
-
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="mt-4 w-full"
-                                tabIndex={4}
-                                disabled={processing}
-                                data-test="login-button"
-                            >
-                                {processing && <Spinner />}
-                                Log in
-                            </Button>
-                        </div>
-
-                        {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground">
-                                Don't have an account?{' '}
-                                <TextLink href={register()} tabIndex={5}>
-                                    Sign up
-                                </TextLink>
-                            </div>
-                        )}
-                    </>
-                )}
-            </Form>
-
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
+            <div className="bg-white rounded-[20px] p-10 w-full max-w-[450px] shadow-[0_10px_30px_rgba(0,0,0,0.3)] text-center animate-in fade-in zoom-in duration-500">
+                <div className="mb-8">
+                    <div className="w-16 h-16 bg-[#F4B942]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <Layers className="size-10 text-[#F4B942]" />
+                    </div>
+                    <h2 className="text-3xl font-extrabold text-[#223771] tracking-tight">SENTRA</h2>
+                    <p className="text-gray-500 text-sm font-medium mt-1">Login Pengguna / OPD</p>
                 </div>
-            )}
-        </>
+
+                {status && <div className="mb-4 text-sm font-medium text-green-600">{status}</div>}
+
+                <form onSubmit={submit} className="space-y-6">
+                    <div className="text-left">
+                        <label className="block text-sm font-semibold text-gray-500 mb-2 ml-1">Username</label>
+                        <input
+                            id="username"
+                            type="text"
+                            name="username"
+                            value={data.username}
+                            autoFocus
+                            className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-[10px] py-3 px-4 text-sm font-medium text-[#223771] focus:ring-2 focus:ring-[#F4B942]/20 focus:border-[#F4B942] transition-all outline-none"
+                            placeholder="Masukkan Username"
+                            onChange={(e) => setData('username', e.target.value)}
+                            required
+                        />
+                        {errors.username && <p className="mt-2 text-xs text-red-500 font-bold ml-1">{errors.username}</p>}
+                    </div>
+
+                    <div className="text-left">
+                        <label className="block text-sm font-semibold text-gray-500 mb-2 ml-1">Password</label>
+                        <input
+                            id="password"
+                            type="password"
+                            name="password"
+                            value={data.password}
+                            className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-[10px] py-3 px-4 text-sm font-medium text-[#223771] focus:ring-2 focus:ring-[#F4B942]/20 focus:border-[#F4B942] transition-all outline-none"
+                            placeholder="Masukkan Password"
+                            onChange={(e) => setData('password', e.target.value)}
+                            required
+                        />
+                        {errors.password && <p className="mt-2 text-xs text-red-500 font-bold ml-1">{errors.password}</p>}
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4 ml-1">
+                        <input
+                            type="checkbox"
+                            className="rounded border-gray-300 text-[#F4B942] focus:ring-[#F4B942]"
+                            checked={data.remember}
+                            onChange={(e) => setData('remember', e.target.checked)}
+                        />
+                        <span className="text-xs text-gray-500 font-medium">Ingat saya</span>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="w-full bg-[#F4B942] text-white py-3 rounded-[10px] font-bold text-base shadow-lg shadow-amber-500/20 hover:bg-[#e5a930] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    >
+                        {processing ? <Loader2 className="size-5 animate-spin" /> : 'Login Dashboard'}
+                    </button>
+                    
+                    <div className="pt-4">
+                        <a href="/" className="text-gray-400 text-xs font-bold hover:text-[#223771] transition-colors">
+                            Kembali ke Beranda
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </AuthLayout>
     );
 }
-
-Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
-};
