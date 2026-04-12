@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 export type ResolvedAppearance = 'light' | 'dark';
-export type Appearance = ResolvedAppearance | 'light';
+export type Appearance = ResolvedAppearance | 'system';
 
 export type UseAppearanceReturn = {
     readonly appearance: Appearance;
@@ -38,7 +38,10 @@ const getStoredAppearance = (): Appearance => {
 };
 
 const isDarkMode = (appearance: Appearance): boolean => {
-    return appearance === 'dark' || (appearance === 'light' && prefersDark());
+    if (appearance === 'system') {
+        return prefersDark();
+    }
+    return appearance === 'dark';
 };
 
 const applyTheme = (appearance: Appearance): void => {
@@ -68,13 +71,18 @@ const mediaQuery = (): MediaQueryList | null => {
     return window.matchMedia('(prefers-color-scheme: dark)');
 };
 
-const handleSystemThemeChange = (): void => applyTheme(currentAppearance);
+const handleSystemThemeChange = (): void => {
+    if (currentAppearance === 'system') {
+        applyTheme('system');
+    }
+};
 
 export function initializeTheme(): void {
     if (typeof window === 'undefined') {
         return;
     }
 
+    // Default to 'light' if nothing is stored
     if (!localStorage.getItem('appearance')) {
         localStorage.setItem('appearance', 'light');
         setCookie('appearance', 'light');

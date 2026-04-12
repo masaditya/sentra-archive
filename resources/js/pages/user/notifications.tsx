@@ -1,15 +1,16 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm } from '@inertiajs/react';
 import { BreadcrumbItem } from '@/types';
-import { Flame, ArrowRight, Star, FileSignature, CheckCircle2, Upload, X } from 'lucide-react';
+import { Flame, ArrowRight, Star, FileSignature, CheckCircle2, Upload, X, Archive, Handshake } from 'lucide-react';
 import { useState } from 'react';
 
 interface Notification {
     id: number;
     archive_number: string;
     type: string;
-    status: string;
+    status: string; // 'Musnah', 'Inaktif', 'Permanen'
     year: number;
+    description?: string;
 }
 
 interface Props {
@@ -21,13 +22,18 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Notifikasi', href: '/notifications' },
 ];
 
-export default function Notifications({ notifications }: Props) {
+export default function Notifications({ notifications = [] }: Props) {
     const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
     const [step, setStep] = useState(1);
     const { data, setData, post, processing, reset } = useForm({
         file: null as File | null,
         action_type: '',
     });
+
+    // Filtering logic (Mocking data for complete visual demo if props are empty)
+    const musnahList = notifications.filter(n => n.status === 'Musnah');
+    const inaktifList = notifications.filter(n => n.status === 'Inaktif');
+    const permanenList = notifications.filter(n => n.status === 'Permanen');
 
     const triggerAction = (notif: Notification, action: string) => {
         setSelectedNotif(notif);
@@ -52,106 +58,147 @@ export default function Notifications({ notifications }: Props) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Notifikasi Retensi" />
 
-            <div className="p-6">
-                <header className="mb-8">
-                    <h1 className="text-2xl font-bold text-[#223771] mb-1">Notifikasi Retensi</h1>
-                    <p className="text-gray-500">Pemberitahuan jadwal retensi arsip yang jatuh tempo beserta tindak lanjutnya.</p>
+            <div className="p-8 bg-[#F0F4F9] min-h-screen">
+                <header className="mb-12">
+                    <h1 className="text-3xl font-black text-[#223771] tracking-tighter uppercase mb-1">Notifikasi Retensi</h1>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Pemberitahuan jadwal retensi arsip yang jatuh tempo beserta tindak lanjutnya.</p>
                 </header>
 
-                <div className="max-w-4xl space-y-8">
-                    {/* Groups based on status/action */}
+                <div className="max-w-4xl space-y-12">
+                    
+                    {/* 1. Musnah Group */}
                     <div className="space-y-4">
-                        <div className="border-l-4 border-amber-400 pl-4">
-                            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Tindakan Retensi</h2>
-                            
-                            <div className="space-y-4">
-                                {notifications.length > 0 ? notifications.map((notif) => (
-                                    <div key={notif.id} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                                            notif.status === 'Inaktif' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
-                                        }`}>
-                                            {notif.year < 2015 ? <Flame className="w-6 h-6" /> : <ArrowRight className="w-6 h-6" />}
-                                        </div>
-                                        <div className="grow">
-                                            <h6 className="font-bold text-gray-800">{notif.type} - {notif.archive_number}</h6>
-                                            <p className="text-xs text-gray-500">Jadwal retensi JRA telah habis dan memerlukan tindakan {notif.year < 2015 ? 'Pemusnahan' : 'Pemindahan'}.</p>
-                                        </div>
-                                        <button 
-                                            onClick={() => triggerAction(notif, notif.year < 2015 ? 'Berita Acara Pemusnahan' : 'Berita Acara Pemindahan')}
-                                            className="px-4 py-2 border border-[#4285F4] text-[#4285F4] text-xs font-bold rounded-xl hover:bg-[#4285F4] hover:text-white transition-all flex items-center gap-2"
-                                        >
-                                            <FileSignature className="w-4 h-4" />
-                                            {notif.year < 2015 ? 'Pemusnahan' : 'Pindah Inaktif'}
-                                        </button>
-                                    </div>
-                                )) : (
-                                    <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                        <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                                        <p className="text-gray-500 font-medium">Semua tindakan retensi telah selesai.</p>
-                                    </div>
-                                )}
-                            </div>
+                        <div className="flex items-center gap-2 border-l-4 border-amber-400 pl-4 py-1">
+                            <h2 className="text-sm font-black text-[#223771] uppercase tracking-widest">AKAN DIMUSNAHKAN</h2>
+                            <span className="bg-amber-100 text-amber-600 text-[10px] font-black px-2 py-0.5 rounded-full">{musnahList.length}</span>
+                        </div>
+                        <div className="space-y-4 ml-5">
+                            {musnahList.length > 0 ? musnahList.map((notif) => (
+                                <NotificationCard 
+                                    key={notif.id} 
+                                    notif={notif} 
+                                    icon={<Flame className="size-6" />} 
+                                    iconBg="bg-amber-50 text-amber-500"
+                                    actionIcon={<FileSignature className="size-4" />}
+                                    actionLabel="Berita Acara Pemusnahan"
+                                    actionBtnClass="border-red-200 text-red-500 hover:bg-red-500 hover:text-white"
+                                    onAction={() => triggerAction(notif, 'Berita Acara Pemusnahan')}
+                                />
+                            )) : <EmptyState message="Tidak ada jadwal pemusnahan." />}
                         </div>
                     </div>
+
+                    {/* 2. Inaktif Group */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 border-l-4 border-[#4285F4] pl-4 py-1">
+                            <h2 className="text-sm font-black text-[#223771] uppercase tracking-widest">PINDAH KE INAKTIF</h2>
+                            <span className="bg-blue-50 text-blue-500 text-[10px] font-black px-2 py-0.5 rounded-full">{inaktifList.length}</span>
+                        </div>
+                        <div className="space-y-4 ml-5">
+                            {inaktifList.length > 0 ? inaktifList.map((notif) => (
+                                <NotificationCard 
+                                    key={notif.id} 
+                                    notif={notif} 
+                                    icon={<ArrowRight className="size-6" />} 
+                                    iconBg="bg-blue-50 text-blue-500"
+                                    actionIcon={<Archive className="size-4" />}
+                                    actionLabel="Berita Acara Pemindahan Inaktif"
+                                    actionBtnClass="border-blue-200 text-blue-500 hover:bg-blue-500 hover:text-white"
+                                    onAction={() => triggerAction(notif, 'Berita Acara Pemindahan Inaktif')}
+                                />
+                            )) : <EmptyState message="Tidak ada jadwal pemindahan inaktif." />}
+                        </div>
+                    </div>
+
+                    {/* 3. Permanen Group */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 border-l-4 border-green-500 pl-4 py-1">
+                            <h2 className="text-sm font-black text-[#223771] uppercase tracking-widest">MENJADI PERMANEN</h2>
+                            <span className="bg-green-50 text-green-600 text-[10px] font-black px-2 py-0.5 rounded-full">{permanenList.length}</span>
+                        </div>
+                        <div className="space-y-4 ml-5">
+                            {permanenList.length > 0 ? permanenList.map((notif) => (
+                                <NotificationCard 
+                                    key={notif.id} 
+                                    notif={notif} 
+                                    icon={<Star className="size-6" />} 
+                                    iconBg="bg-green-50 text-green-500"
+                                    actionIcon={<Handshake className="size-4" />}
+                                    actionLabel="Serahkan Ke Statis (LKD)"
+                                    actionBtnClass="border-green-200 text-green-600 hover:bg-green-600 hover:text-white"
+                                    onAction={() => triggerAction(notif, 'Berita Acara Penyerahan Statis')}
+                                />
+                            )) : <EmptyState message="Tidak ada jadwal penyerahan permanen." />}
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Premium Workflow Modal */}
             {selectedNotif && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl relative animate-in slide-in-from-bottom-4 duration-300">
-                        <button onClick={() => setSelectedNotif(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600">
-                            <X className="w-5 h-5" />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#223771]/40 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-lg rounded-[40px] p-10 shadow-2xl relative animate-in zoom-in-95 duration-300">
+                        <button onClick={() => setSelectedNotif(null)} className="absolute top-8 right-8 text-gray-300 hover:text-red-500 transition-colors">
+                            <X className="size-6" />
                         </button>
 
                         {step === 1 ? (
                             <div className="text-center">
-                                <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <Flame className="w-8 h-8" />
+                                <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-amber-500/10">
+                                    <FileSignature className="size-8" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800 mb-2">Konfirmasi Tindakan</h3>
-                                <p className="text-gray-500 text-sm mb-8">
-                                    Apakah Anda ingin menindaklanjuti proses <span className="font-bold text-gray-700">{data.action_type}</span> untuk arsip <span className="font-bold text-gray-700">{selectedNotif.archive_number}</span>?
+                                <h3 className="text-2xl font-black text-[#223771] mb-2 uppercase tracking-tight">KONFIRMASI TINDAKAN</h3>
+                                <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-10 leading-relaxed px-6">
+                                    APAKAH ANDA INGIN MENINDAKLANJUTI PROSES <span className="text-amber-500">{data.action_type}</span> UNTUK BERKAS <span className="text-[#223771]">{selectedNotif.archive_number}</span>?
                                 </p>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <button onClick={() => setSelectedNotif(null)} className="px-6 py-3 rounded-2xl border border-gray-200 font-bold text-gray-500 hover:bg-gray-50 transition-colors">
-                                        Abaikan
+                                    <button onClick={() => setSelectedNotif(null)} className="px-8 py-4 rounded-2xl border border-gray-100 font-black text-[10px] uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-colors">
+                                        BATALKAN
                                     </button>
-                                    <button onClick={() => setStep(2)} className="px-6 py-3 rounded-2xl bg-[#4285F4] font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-600 transition-colors">
-                                        Tindak Lanjut
+                                    <button onClick={() => setStep(2)} className="px-8 py-4 rounded-2xl bg-[#223771] font-black text-[10px] uppercase tracking-widest text-white shadow-xl shadow-blue-900/20 hover:scale-105 transition-all">
+                                        LANJUT UPLOAD
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <div>
-                                <h3 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-                                    <Upload className="text-[#4285F4] w-5 h-5" /> Upload Dokumen
-                                </h3>
-                                <p className="text-gray-500 text-sm mb-6">Silakan unggah dokumen PDF / Image yang telah disetujui dan ditandatangani.</p>
+                            <div className="space-y-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center shrink-0">
+                                        <Upload className="size-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-[#223771] leading-none uppercase tracking-tight">Unggah Berkas</h3>
+                                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">Lampirkan Berita Acara (PDF/JPG/PNG)</p>
+                                    </div>
+                                </div>
                                 
-                                <form onSubmit={submit} className="space-y-6">
-                                    <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-                                        <input 
-                                            type="file" 
-                                            className="absolute inset-0 opacity-0 cursor-pointer"
-                                            onChange={(e) => setData('file', e.target.files ? e.target.files[0] : null)}
-                                            accept=".pdf,.jpg,.png"
-                                        />
-                                        <p className="text-sm font-bold text-gray-500">
-                                            {data.file ? data.file.name : 'Pilih File (PDF, JPG, PNG)'}
-                                        </p>
+                                <form onSubmit={submit} className="space-y-8">
+                                    <div className="group relative">
+                                        <div className="border-4 border-dashed border-gray-50 rounded-[32px] p-12 text-center group-hover:bg-blue-50 group-hover:border-blue-100 transition-all cursor-pointer">
+                                            <input 
+                                                type="file" 
+                                                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                onChange={(e) => setData('file', e.target.files ? e.target.files[0] : null)}
+                                                accept=".pdf,.jpg,.png"
+                                            />
+                                            <Upload className="size-10 text-gray-200 mx-auto mb-4 group-hover:text-blue-300 transition-colors" />
+                                            <p className="text-xs font-black text-gray-400 group-hover:text-blue-500 transition-colors uppercase tracking-widest leading-relaxed">
+                                                {data.file ? data.file.name : 'KLIK ATAU TARIK FILE DISINI'}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 mt-8">
-                                        <button type="button" onClick={() => setStep(1)} className="px-6 py-3 rounded-2xl border border-gray-200 font-bold text-gray-500 hover:bg-gray-50 transition-colors">
-                                            Kembali
+                                    <div className="grid grid-cols-2 gap-4 pt-4">
+                                        <button type="button" onClick={() => setStep(1)} className="px-8 py-4 rounded-2xl border border-gray-50 font-black text-[10px] uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-colors">
+                                            KEMBALI
                                         </button>
                                         <button 
                                             type="submit" 
                                             disabled={processing || !data.file} 
-                                            className="px-6 py-3 rounded-2xl bg-green-500 font-bold text-white shadow-lg shadow-green-200 hover:bg-green-600 transition-colors disabled:opacity-50"
+                                            className="px-8 py-4 rounded-2xl bg-green-500 font-black text-[10px] uppercase tracking-widest text-white shadow-xl shadow-green-500/20 hover:scale-105 transition-all disabled:opacity-50"
                                         >
-                                            {processing ? 'Uploading...' : 'Upload Berkas'}
+                                            {processing ? 'UPLOADING...' : 'SELESAIKAN'}
                                         </button>
                                     </div>
                                 </form>
@@ -162,4 +209,41 @@ export default function Notifications({ notifications }: Props) {
             )}
         </AppLayout>
     );
+}
+
+function NotificationCard({ notif, icon, iconBg, actionIcon, actionLabel, actionBtnClass, onAction }: any) {
+    return (
+        <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-6 group hover:translate-x-1 transition-all">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-gray-200/50 ${iconBg}`}>
+                {icon}
+            </div>
+            <div className="grow text-center md:text-left">
+                <h6 className="font-black text-[#223771] text-base leading-none uppercase tracking-tight">{notif.type}</h6>
+                <p className="text-gray-500 text-xs font-bold leading-relaxed mt-2 italic">{notif.description || `Masa retensi berkas ${notif.archive_number} telah habis. Segera tindak lanjuti.`}</p>
+            </div>
+            <button 
+                onClick={onAction}
+                className={cn(
+                    "px-6 py-3 border-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2 shrink-0 active:scale-95",
+                    actionBtnClass
+                )}
+            >
+                {actionIcon}
+                {actionLabel}
+            </button>
+        </div>
+    );
+}
+
+function EmptyState({ message }: { message: string }) {
+    return (
+        <div className="bg-gray-50/50 border border-dashed border-gray-200 rounded-[32px] py-12 px-8 text-center">
+            <CheckCircle2 className="size-10 text-gray-200 mx-auto mb-4" />
+            <p className="text-gray-300 font-bold text-[10px] uppercase tracking-widest italic">{message}</p>
+        </div>
+    );
+}
+
+function cn(...classes: any[]) {
+    return classes.filter(Boolean).join(' ');
 }

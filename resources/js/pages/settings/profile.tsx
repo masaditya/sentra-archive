@@ -1,132 +1,96 @@
-import { Form, Head, Link, usePage } from '@inertiajs/react';
+import SettingsLayout from '@/layouts/settings/layout';
+import { Form, Head, usePage } from '@inertiajs/react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { edit } from '@/routes/profile';
-import { send } from '@/routes/verification';
+import { Info } from 'lucide-react';
 
-export default function Profile({
-    mustVerifyEmail,
-    status,
-}: {
-    mustVerifyEmail: boolean;
-    status?: string;
-}) {
+export default function Profile() {
     const { auth } = usePage().props;
 
     return (
-        <>
-            <Head title="Profile settings" />
+        <SettingsLayout>
+            <div className="max-w-2xl">
+                <Head title="Profil Saya" />
 
-            <h1 className="sr-only">Profile settings</h1>
-
-            <div className="space-y-6">
-                <Heading
-                    variant="small"
-                    title="Profile information"
-                    description="Update your name and email address"
-                />
+                <div className="mb-10">
+                    <h2 className="text-xl font-black text-[#223771] tracking-tight flex items-center gap-2">
+                        INFORMASI PERSONAL
+                    </h2>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Update nama lengkap dan alamat email instansi Anda</p>
+                </div>
 
                 <Form
                     {...ProfileController.update.form()}
                     options={{
                         preserveScroll: true,
                     }}
-                    className="space-y-6"
+                    className="space-y-8"
                 >
                     {({ processing, errors }) => (
                         <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3" htmlFor="name">Nama Lengkap</label>
+                                    <input
+                                        id="name"
+                                        name="name"
+                                        type="text"
+                                        defaultValue={auth.user.name}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#223771] focus:ring-4 focus:ring-blue-500/5 focus:outline-none transition-all"
+                                        placeholder="Masukkan nama lengkap"
+                                        required
+                                    />
+                                    <InputError className="mt-2 text-[10px] font-black italic" message={errors.name} />
+                                </div>
 
-                                <Input
-                                    id="name"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.name}
-                                    name="name"
-                                    required
-                                    autoComplete="name"
-                                    placeholder="Full name"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.name}
-                                />
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3" htmlFor="email">Alamat Email</label>
+                                    <input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        defaultValue={auth.user.email}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold text-[#223771] focus:ring-4 focus:ring-blue-500/5 focus:outline-none transition-all"
+                                        placeholder="email@instansi.go.id"
+                                        required
+                                    />
+                                    <InputError className="mt-2 text-[10px] font-black italic" message={errors.email} />
+                                </div>
                             </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.email}
-                                    name="email"
-                                    required
-                                    autoComplete="username"
-                                    placeholder="Email address"
-                                />
-
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.email}
-                                />
-                            </div>
-
-                            {mustVerifyEmail &&
-                                auth.user.email_verified_at === null && (
-                                    <div>
-                                        <p className="-mt-4 text-sm text-muted-foreground">
-                                            Your email address is unverified.{' '}
-                                            <Link
-                                                href={send()}
-                                                as="button"
-                                                className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                            >
-                                                Click here to resend the
-                                                verification email.
-                                            </Link>
-                                        </p>
-
-                                        {status ===
-                                            'verification-link-sent' && (
-                                            <div className="mt-2 text-sm font-medium text-green-600">
-                                                A new verification link has been
-                                                sent to your email address.
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                            <div className="flex items-center gap-4">
-                                <Button
+                            <div className="pt-4">
+                                <button
+                                    type="submit"
                                     disabled={processing}
-                                    data-test="update-profile-button"
+                                    className="bg-[#223771] text-white font-black px-10 py-4 rounded-2xl shadow-xl shadow-blue-900/20 text-xs tracking-widest uppercase hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
                                 >
-                                    Save
-                                </Button>
+                                    {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
+                                </button>
                             </div>
                         </>
                     )}
                 </Form>
-            </div>
 
-            <DeleteUser />
-        </>
+                <div className="mt-20 pt-10 border-t border-gray-100">
+                    <div className="bg-red-50 p-8 rounded-[32px] border border-red-100">
+                        <h3 className="text-red-600 font-black text-sm uppercase tracking-tight flex items-center gap-2 mb-2">
+                            BAHAYA: Hapus Akun
+                        </h3>
+                        <p className="text-red-400 text-xs font-bold leading-relaxed mb-6">
+                            Menghapus akun akan menghilangkan seluruh data arsip dan riwayat yang terkait secara permanen. Tindakan ini tidak dapat dibatalkan.
+                        </p>
+                        <DeleteUser />
+                    </div>
+                </div>
+                
+                <div className="mt-10 flex items-center gap-2 text-gray-300 text-[10px] font-black uppercase">
+                    <Info className="size-4" /> Pastikan data yang anda masukkan valid untuk keperluan korespondensi sistem.
+                </div>
+            </div>
+        </SettingsLayout>
     );
 }
 
-Profile.layout = {
-    breadcrumbs: [
-        {
-            title: 'Profile settings',
-            href: edit(),
-        },
-    ],
-};
+Profile.layout = (page: React.ReactNode) => page;

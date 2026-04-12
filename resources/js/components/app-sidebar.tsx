@@ -33,6 +33,11 @@ export function AppSidebar() {
             href: '/admin/notifications',
             icon: Bell,
         },
+        {
+            title: 'Pengaturan',
+            href: '/settings/profile',
+            icon: Layers,
+        },
     ] : [
         {
             title: 'Dashboard',
@@ -48,6 +53,11 @@ export function AppSidebar() {
             title: 'Upload Data',
             href: '/upload',
             icon: Upload,
+        },
+        {
+            title: 'Pengaturan',
+            href: '/settings/profile',
+            icon: Layers,
         },
     ];
 
