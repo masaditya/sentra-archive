@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENTRA - Super Admin Pemkab Bojonegoro</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --sidebar-bg: #223771; --sidebar-active: #F4B942; --bg-body: #F0F4F9;
+            --text-dark: #2C3E50; --text-muted: #7F8C8D; --card-bg: #FFFFFF;
+            --primary-blue: #4285F4; --purple-accent: #8B5CF6; --green-accent: #10B981;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg-body); color: var(--text-dark); overflow-x: hidden; }
+
+        .view-section { display: none; animation: fadeIn 0.4s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Public Layout */
+        .public-navbar { position: fixed; top: 0; left: 0; width: 100%; padding: 20px; z-index: 1000; display: flex; justify-content: center; transition: transform 0.3s ease;}
+        .nav-pill-container { background: rgba(255, 255, 255, 0.95); padding: 10px 30px; border-radius: 50px; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+        .nav-pill-link { color: var(--sidebar-bg); font-weight: 700; text-decoration: none; cursor: pointer; transition: color 0.2s;}
+        .nav-pill-link:hover { color: var(--sidebar-active); }
+        .nav-date { color: var(--sidebar-bg); font-weight: 700; padding-left: 20px; border-left: 2px solid #ddd; }
+        
+        .home-wrapper { background: linear-gradient(135deg, var(--sidebar-bg) 0%, #1A295A 100%); min-height: 100vh; color: white; }
+        .home-wrapper.active { display: flex; align-items: center; }
+        .hero-title { font-size: 4.5rem; font-weight: 800; letter-spacing: 2px; margin-bottom: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .text-yellow { color: var(--sidebar-active); }
+
+        .doc-preview { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); color: black; width: 320px; height: 420px; margin: auto; position: relative; transform: rotate(5deg); transition: transform 0.3s ease; }
+        .doc-preview:hover { transform: rotate(0deg) scale(1.05); }
+        .doc-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;}
+        .doc-line { height: 8px; background: #E2E8F0; margin-bottom: 12px; border-radius: 4px;}
+        .doc-line.short { width: 60%; }
+        .doc-line.title { height: 12px; background: #CBD5E1; width: 80%; margin: 25px auto;}
+
+        .login-wrapper { background: var(--sidebar-bg); min-height: 100vh; }
+        .login-wrapper.active { display: flex; align-items: center; justify-content: center; }
+        .login-box { background: white; border-radius: 20px; padding: 40px; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center; }
+
+        /* App Layout */
+        .app-container { display: flex; height: 100vh; overflow: hidden; width: 100vw; }
+        .sidebar { width: 260px; background: linear-gradient(180deg, #1A295A 0%, #2A438A 100%); color: white; display: flex; flex-direction: column; z-index: 1000; }
+        .sidebar-header { padding: 25px 20px; display: flex; align-items: center; font-size: 1.5rem; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header i { margin-right: 10px; color: var(--sidebar-active); }
+        .sidebar-menu { flex-grow: 1; padding: 20px 0; overflow-y: auto; }
+        .menu-item { padding: 12px 25px; display: flex; align-items: center; color: rgba(255,255,255,0.7); text-decoration: none; font-weight: 500; cursor: pointer; margin-bottom: 5px; transition: all 0.2s;}
+        .menu-item:hover { color: white; background: rgba(255,255,255,0.05); }
+        .menu-item i { width: 25px; font-size: 1.1rem; margin-right: 10px; }
+        .menu-item.active { color: var(--sidebar-bg); background-color: var(--sidebar-active); border-radius: 0 25px 25px 0; margin-right: 20px; font-weight: 600; }
+        .sidebar-footer { padding: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .user-profile-mini { display: flex; align-items: center; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; }
+        .user-profile-mini img { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; }
+        .user-info-mini h6 { margin: 0; font-size: 0.85rem; font-weight: 600; }
+        .user-info-mini small { font-size: 0.7rem; color: rgba(255,255,255,0.6); }
+
+        .main-wrapper { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .topbar { height: 80px; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; background: var(--bg-body); z-index: 10; }
+        .search-bar { background: white; border-radius: 20px; padding: 8px 20px; display: flex; align-items: center; width: 350px; }
+        .search-bar input { border: none; outline: none; background: transparent; margin-left: 10px; width: 100%; font-size: 0.9rem; }
+        .topbar-actions { display: flex; align-items: center; gap: 20px; }
+        .date-profile-pill { background: white; padding: 8px 15px; border-radius: 25px; display: flex; align-items: center; font-size: 0.85rem; font-weight: 600; }
+        .content-area { flex-grow: 1; padding: 20px 30px; overflow-y: auto; }
+
+        /* Components */
+        .page-title { font-size: 1.8rem; font-weight: 700; color: var(--sidebar-bg); margin-bottom: 20px; display: flex; align-items: center; }
+        .custom-card { background: var(--card-bg); border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 20px; }
+        
+        .kpi-card { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-radius: 15px; cursor: pointer; transition: transform 0.2s;}
+        .kpi-card:hover { transform: translateY(-5px); }
+        .kpi-white { background: white; color: var(--text-dark); }
+        .kpi-blue { background: linear-gradient(135deg, #4285F4, #2A65D1); color: white; }
+        .kpi-purple { background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: white; }
+        .kpi-green { background: linear-gradient(135deg, #10B981, #047857); color: white; }
+        .kpi-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 5px; opacity: 0.9;}
+        .kpi-value { font-size: 2rem; font-weight: 800; margin: 0; transition: opacity 0.3s ease;}
+        .kpi-icon { font-size: 2rem; opacity: 0.8;}
+
+        .table-custom { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+        .table-custom th { color: var(--text-muted); font-size: 0.85rem; padding: 0 15px; border: none;}
+        .table-custom td { background: white; padding: 15px; font-size: 0.9rem; font-weight: 500;}
+        .table-custom tr td:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+        .table-custom tr td:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;}
+        .status-aktif { background: #E8F0FE; color: #1967D2; }
+        .status-inaktif { background: #F3E8FF; color: #7E22CE; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+        .form-label-custom { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;}
+        .form-control-light { border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 15px; background: #F8FAFC; font-size: 0.9rem;}
+        .btn-yellow-main { background: var(--sidebar-active); color: #fff; border: none; padding: 10px 30px; border-radius: 20px; font-weight: 700; transition: transform 0.2s;}
+        .btn-yellow-main:hover { transform: scale(1.02); }
+    </style>
+</head>
+<body>
+
+    <!-- PUBLIC NAVBAR -->
+    <nav id="public-navbar" class="public-navbar">
+        <div class="nav-pill-container">
+            <a class="nav-pill-link" onclick="navigate('home')">Beranda</a>
+            <a class="nav-pill-link" onclick="navigate('login')">Login Administrator</a>
+            <div class="nav-date" id="public-date"></div>
+        </div>
+    </nav>
+
+    <!-- VIEW: HOME -->
+    <section id="view-home" class="view-section active home-wrapper">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <h1 class="hero-title">SENTRA</h1>
+                    <h2 class="mb-4" style="font-weight: 600; font-size: 1.5rem;">SISTEM NOTIFIKASI <span class="text-yellow">RETENSI ARSIP</span></h2>
+                    <p class="mb-5" style="font-size: 1.1rem; opacity: 0.9;">Halaman Akses Khusus Super Admin Sistem Retensi Arsip Pemerintah Kabupaten Bojonegoro.</p>
+                    <button class="btn btn-yellow-main btn-lg" onclick="navigate('login')">Masuk ke Sistem</button>
+                </div>
+            
+    </section>
+
+    <!-- VIEW: LOGIN -->
+    <section id="view-login" class="view-section login-wrapper">
+        <div class="login-box">
+            <div class="mb-4">
+                <i class="fas fa-layer-group fa-3x" style="color: var(--sidebar-active);"></i>
+                <h2 class="mt-3">SENTRA</h2>
+                <p class="text-muted text-danger fw-bold">Login Khusus Super Admin</p>
+            </div>
+            <form onsubmit="handleLogin(event)">
+                <div class="mb-3 text-start">
+                    <label class="form-label-custom">Username Admin</label>
+                    <input type="text" class="form-control form-control-light" required>
+                </div>
+                <div class="mb-4 text-start">
+                    <label class="form-label-custom">Password Default</label>
+                    <input type="password" class="form-control form-control-light" required>
+                </div>
+                <button type="submit" class="btn btn-yellow-main w-100">Login Administrator</button>
+                <button type="button" class="btn btn-link text-muted mt-3 text-decoration-none" onclick="navigate('home')">Kembali ke Beranda</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-wrapper" class="app-container d-none">
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header"><i class="fas fa-layer-group"></i> SENTRA</div>
+            <div class="sidebar-menu">
+                <a class="menu-item active" id="nav-dashboard" onclick="navigate('dashboard')">
+                    <i class="fas fa-home"></i> Dashboard Utama
+                </a>
+                <a class="menu-item" id="nav-pengguna" onclick="navigate('pengguna')">
+                    <i class="fas fa-users-cog"></i> Kelola OPD
+                </a>
+                <a class="menu-item" id="nav-notifikasi" onclick="navigate('notifikasi')">
+                    <i class="fas fa-bell"></i> Notifikasi Global
+                </a>
+            </div>
+            <div class="sidebar-footer">
+                <div class="user-profile-mini">
+                    <img src="https://ui-avatars.com/api/?name=Super+Admin&background=random" alt="Admin">
+                    <div class="user-info-mini">
+                        <h6>Super Admin</h6>
+                        <small>Administrator</small>
+                    </div>
+                    <i class="fas fa-sign-out-alt ms-auto" style="cursor: pointer; color: rgba(255,255,255,0.6);" onclick="handleLogout()"></i>
+                </div>
+            </div>
+        </aside>
+
+        <div class="main-wrapper">
+            <header class="topbar">
+                <div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Cari Data Global..."></div>
+                <div class="topbar-actions"><div class="date-profile-pill"><span id="current-date">Tanggal</span></div></div>
+            </header>
+
+            <main class="content-area">
+
+                <!-- VIEW: DASHBOARD -->
+                <section id="view-dashboard" class="view-section">
+                    <h1 class="page-title">Dashboard <span class="badge bg-danger rounded-pill ms-2" style="font-size: 0.7rem;">Super Admin</span></h1>
+                    
+                    <!-- KPI Super Admin -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-3">
+                            <div class="kpi-card kpi-white" onclick="resetDashboardFilter()">
+                                <div><div class="kpi-title" style="font-size: 0.75rem;">Arsip Pemerintah Kabupaten Bojonegoro</div><div class="kpi-value" id="kpi-total">28,500</div></div>
+                                <i class="fas fa-folder kpi-icon text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="kpi-card kpi-blue">
+                                <div><div class="kpi-title text-light">Total OPD Aktif</div><div class="kpi-value">45</div></div>
+                                <i class="fas fa-building kpi-icon text-white"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="kpi-card kpi-purple">
+                                <div><div class="kpi-title text-light">Total Arsip Aktif & Inaktif</div><div class="kpi-value" id="kpi-aktif-inaktif">22,200</div></div>
+                                <i class="fas fa-archive kpi-icon text-white"></i>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="kpi-card kpi-green">
+                                <div><div class="kpi-title text-light">Total Arsip Permanen</div><div class="kpi-value" id="kpi-permanen">3,900</div></div>
+                                <i class="fas fa-star kpi-icon text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chart Super Admin -->
+                    <div class="row g-4">
+                        <div class="col-md-12">
+                            <div class="custom-card mb-4">
+                                <h5 style="font-weight: 700; margin-bottom: 15px;">Statistik Keseluruhan Arsip OPD</h5>
+                                <div style="height: 350px; position: relative;"><canvas id="retensiChart"></canvas></div>
+                                <small class="text-muted mt-2 d-block"><i class="fas fa-info-circle"></i> Klik batang grafik untuk memfilter detail metrik di atas berdasarkan tahun.</small>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: KELOLA PENGGUNA / OPD -->
+                <section id="view-pengguna" class="view-section">
+                    <h1 class="page-title mb-1">Kelola Pengguna / OPD</h1>
+                    <p class="text-muted mb-4">Tambahkan dan atur hak akses instansi atau OPD ke dalam sistem SENTRA.</p>
+
+                    <div class="row">
+                        <!-- Form Tambah OPD -->
+                        <div class="col-md-4">
+                            <div class="custom-card">
+                                <h5 class="fw-bold mb-4" style="color: var(--sidebar-bg);"><i class="fas fa-plus-circle text-warning me-2"></i>Tambah OPD Baru</h5>
+                                <form onsubmit="alert('OPD Berhasil Ditambahkan ke Sistem!'); event.preventDefault();">
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Nama Instansi / OPD</label>
+                                        <input type="text" class="form-control form-control-light" required placeholder="Contoh: Dinas Kesehatan">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Username Akun</label>
+                                        <input type="text" class="form-control form-control-light" required placeholder="dinkes_admin">
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label-custom">Password Default</label>
+                                        <input type="password" class="form-control form-control-light" required placeholder="••••••••">
+                                    </div>
+                                    <button type="submit" class="btn btn-yellow-main w-100">Simpan Akun OPD</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Tabel Daftar OPD -->
+                        <div class="col-md-8">
+                            <div class="custom-card">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold m-0" style="color: var(--sidebar-bg);">Daftar Akses Pengguna OPD</h5>
+                                    <input type="text" class="form-control form-control-sm form-control-light w-auto" placeholder="Cari instansi...">
+                                </div>
+                                <table class="table-custom">
+                                    <thead>
+                                        <tr>
+                                            <th>Nama Instansi / OPD</th>
+                                            <th>Username</th>
+                                            <th>Status Akun</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="fw-bold text-dark">Dinas Kependudukan</td>
+                                            <td>disdukcapil_01</td>
+                                            <td><span class="status-badge status-aktif"><span class="status-dot" style="background:#1967D2;"></span> Aktif</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></button>
+                                                <button class="btn btn-sm btn-outline-danger" title="Nonaktifkan"><i class="fas fa-ban"></i></button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-bold text-dark">Dinas Kesehatan</td>
+                                            <td>dinkes_admin</td>
+                                            <td><span class="status-badge status-aktif"><span class="status-dot" style="background:#1967D2;"></span> Aktif</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                                <button class="btn btn-sm btn-outline-danger"><i class="fas fa-ban"></i></button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-bold text-dark">Dinas PUPR</td>
+                                            <td>pupr_admin</td>
+                                            <td><span class="status-badge status-inaktif"><span class="status-dot" style="background:#7E22CE;"></span> Suspend</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></button>
+                                                <button class="btn btn-sm btn-outline-success"><i class="fas fa-check"></i></button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: NOTIFIKASI -->
+                <section id="view-notifikasi" class="view-section">
+                    <h1 class="page-title mb-1">Notifikasi Global</h1>
+                    <p class="text-muted mb-4">Pantau jadwal pemindahan dan pemusnahan arsip dari seluruh OPD Pemerintah Kabupaten Bojonegoro.</p>
+
+                    <div class="row">
+                        <!-- Daftar Notifikasi per OPD -->
+                        <div class="col-md-8">
+                            
+                            <!-- Group OPD 1 -->
+                            <div class="notif-group shadow-sm mb-4">
+                                <h5>Dinas Kependudukan dan Pencatatan Sipil <span class="badge bg-warning text-dark ms-2">2 Menunggu</span></h5>
+                                <div class="notif-card">
+                                    <div class="notif-icon icon-info me-3"><i class="fas fa-arrow-right"></i></div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0 fw-bold">Arsip Nomor: 470/123/Disdukcapil/2021</h6>
+                                        <small class="text-muted">Status: Memasuki masa Inaktif. Menunggu pemindahan ke Record Center.</small>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary" style="border-radius:15px; font-size: 0.75rem;">Tinjau</button>
+                                </div>
+                                <div class="notif-card">
+                                    <div class="notif-icon icon-warn me-3"><i class="fas fa-fire"></i></div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0 fw-bold">Arsip Nomor: 470/089/Disdukcapil/2016</h6>
+                                        <small class="text-muted">Status: Jadwal retensi habis. Menunggu persetujuan pemusnahan.</small>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary" style="border-radius:15px; font-size: 0.75rem;">Tinjau</button>
+                                </div>
+                            </div>
+
+                            <!-- Group OPD 2 -->
+                            <div class="notif-group shadow-sm mb-4">
+                                <h5>Dinas Kesehatan <span class="badge bg-warning text-dark ms-2">1 Menunggu</span></h5>
+                                <div class="notif-card">
+                                    <div class="notif-icon icon-info me-3"><i class="fas fa-arrow-right"></i></div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0 fw-bold">Arsip Nomor: 440/045/Dinkes/2021</h6>
+                                        <small class="text-muted">Status: Memasuki masa Inaktif. Menunggu pemindahan ke Record Center.</small>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary" style="border-radius:15px; font-size: 0.75rem;">Tinjau</button>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Panel Kanan: Ringkasan Global -->
+                        <div class="col-md-4">
+                            <div class="custom-card text-center p-4">
+                                <i class="fas fa-bell fa-4x mb-3" style="color: var(--sidebar-active);"></i>
+                                <h5 class="fw-bold" style="color: var(--sidebar-bg);">Total 3 Tindakan</h5>
+                                <p class="text-muted small">Terdapat 3 arsip dari 2 OPD yang memerlukan tinjauan pemindahan atau pemusnahan pada bulan ini.</p>
+                                <button class="btn btn-yellow-main w-100 mt-2"><i class="fas fa-print me-2"></i>Cetak Rekapitulasi</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <script>
+        let isLoggedIn = false;
+        let chartInstance = null;
+
+        function updateDate() {
+            const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            document.getElementById('current-date').textContent = today;
+            document.getElementById('public-date').textContent = today;
+        }
+
+        function navigate(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            if (['home', 'login'].includes(viewId)) {
+                document.getElementById('app-wrapper').classList.add('d-none');
+                document.getElementById('public-navbar').classList.toggle('d-none', viewId !== 'home');
+            } else {
+                if (!isLoggedIn) return navigate('login');
+                document.getElementById('public-navbar').classList.add('d-none');
+                document.getElementById('app-wrapper').classList.remove('d-none');
+                document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+                const activeNav = document.getElementById(`nav-${viewId}`);
+                if (activeNav) activeNav.classList.add('active');
+                if (viewId === 'dashboard') setTimeout(renderChart, 100);
+            }
+            document.getElementById(`view-${viewId}`).classList.add('active');
+        }
+
+        function handleLogin(e) { e.preventDefault(); isLoggedIn = true; navigate('dashboard'); }
+        function handleLogout() { isLoggedIn = false; navigate('home'); }
+
+        // Data gabungan (Dummy) untuk seluruh OPD Pemkab Bojonegoro
+        const dashData = { 
+            labels: ['2023', '2024', '2025', '2026', '2027'], 
+            datasets: { 
+                aktif: [1200, 1800, 2400, 3000, 1500], 
+                inaktif: [1200, 1500, 1500, 3600, 4500], 
+                musnah: [600, 1200, 1500, 900, 600], 
+                permanen: [600, 750, 900, 750, 900] 
+            }, 
+            totalSemua: { total: "28,500", aktifInaktif: "22,200", permanen: "3,900" } 
+        };
+
+        function renderChart() {
+            const canvas = document.getElementById('retensiChart');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, { 
+                type: 'bar', 
+                data: { 
+                    labels: dashData.labels, 
+                    datasets: [ 
+                        { label: 'Aktif', data: dashData.datasets.aktif, backgroundColor: '#4285F4' }, 
+                        { label: 'Inaktif', data: dashData.datasets.inaktif, backgroundColor: '#8B5CF6' }, 
+                        { label: 'Musnah', data: dashData.datasets.musnah, backgroundColor: '#F4B942' }, 
+                        { label: 'Permanen', data: dashData.datasets.permanen, backgroundColor: '#047857' } 
+                    ] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    interaction: { mode: 'index', intersect: false },
+                    scales: { 
+                        x: { stacked: true, grid: { display: false } }, 
+                        y: { stacked: true, beginAtZero: true, grid: { color: '#F1F5F9' } } 
+                    }, 
+                    plugins: { legend: { display: true, position: 'top' } },
+                    onClick: (e, activeElements) => {
+                        if (activeElements.length > 0) {
+                            updateKpiCards(activeElements[0].index);
+                        }
+                    },
+                    onHover: (event, chartElement) => {
+                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+                    }
+                } 
+            });
+        }
+
+        function updateKpiCards(index) {
+            const els = [
+                document.getElementById('kpi-total'),
+                document.getElementById('kpi-aktif-inaktif'),
+                document.getElementById('kpi-permanen')
+            ];
+
+            els.forEach(el => el.style.opacity = 0);
+
+            setTimeout(() => {
+                if (index === -1) {
+                    els[0].textContent = dashData.totalSemua.total;
+                    els[1].textContent = dashData.totalSemua.aktifInaktif;
+                    els[2].textContent = dashData.totalSemua.permanen;
+                } else {
+                    const act = dashData.datasets.aktif[index];
+                    const inact = dashData.datasets.inaktif[index];
+                    const mus = dashData.datasets.musnah[index];
+                    const perm = dashData.datasets.permanen[index];
+                    
+                    els[0].textContent = (act + inact + mus + perm).toLocaleString();
+                    els[1].textContent = (act + inact).toLocaleString();
+                    els[2].textContent = perm.toLocaleString();
+                }
+                els.forEach(el => el.style.opacity = 1);
+            }, 300);
+        }
+
+        function resetDashboardFilter() {
+            updateKpiCards(-1);
+        }
+
+        window.onload = function() { updateDate(); navigate('home'); };
+    </script>
+</body>
+</html>
