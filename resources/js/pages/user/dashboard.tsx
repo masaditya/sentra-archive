@@ -42,6 +42,15 @@ interface Props {
     stats: Stats;
     recentArchives: Archive[];
     notificationsCount: number;
+    yearlyData: {
+        labels: string[];
+        datasets: {
+            aktif: number[];
+            inaktif: number[];
+            musnah: number[];
+            permanen: number[];
+        }
+    };
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -51,17 +60,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Dashboard({ stats, recentArchives, notificationsCount }: Props) {
-    // Mock data for years
-    const yearlyData = {
-        labels: ['2023', '2024', '2025', '2026', '2027'],
-        datasets: {
-            aktif: [450, 680, 890, 1200, 500],
-            inaktif: [300, 450, 560, 800, 1200],
-            permanen: [150, 200, 300, 450, 600]
-        }
-    };
-
+export default function Dashboard({ stats, recentArchives, notificationsCount, yearlyData }: Props) {
     const [selectedStats, setSelectedStats] = useState({
         total: stats.total,
         aktif: stats.aktif,

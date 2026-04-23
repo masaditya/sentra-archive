@@ -12,6 +12,16 @@ class Archive extends Model
     protected $fillable = [
         'organization_id',
         'archive_number',
+        'definitive_number',
+        'temporary_number',
+        'archivist_name',
+        'series',
+        'sub_series',
+        'classification_code',
+        'file_number',
+        'description',
+        'start_date',
+        'end_date',
         'type',
         'status',
         'year',
@@ -28,5 +38,10 @@ class Archive extends Model
     public function retentionActions()
     {
         return $this->hasMany(RetentionAction::class);
+    }
+
+    public function classification()
+    {
+        return $this->belongsTo(RetentionSchedule::class, 'classification_code', 'code');
     }
 }

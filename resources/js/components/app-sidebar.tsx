@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { LayoutGrid, Bell, Upload, Building2, Layers } from 'lucide-react';
+import { LayoutGrid, Bell, Upload, Building2, Layers, Database, Settings } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -50,6 +50,11 @@ export function AppSidebar() {
             icon: Bell,
         },
         {
+            title: 'Daftar Arsip',
+            href: '/archives',
+            icon: Database,
+        },
+        {
             title: 'Upload Data',
             href: '/upload',
             icon: Upload,
@@ -57,7 +62,7 @@ export function AppSidebar() {
         {
             title: 'Pengaturan',
             href: '/settings/profile',
-            icon: Layers,
+            icon: Settings,
         },
     ];
 

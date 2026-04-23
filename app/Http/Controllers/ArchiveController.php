@@ -6,6 +6,7 @@ use App\Models\Archive;
 use App\Models\RetentionAction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 class ArchiveController extends Controller
 {
@@ -14,11 +15,127 @@ class ArchiveController extends Controller
         return Inertia::render('user/upload');
     }
 
+    public function index(Request $request)
+    {
+        $organizationId = $request->user()->organization_id ?? 1;
+        $archives = Archive::with('classification')
+            ->where('organization_id', $organizationId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return Inertia::render('user/archives/index', [
+            'archives' => $archives
+        ]);
+    }
+
     public function store(Request $request)
     {
-        // Placeholder for Excel/CSV import logic
-        // In a real app, use Maatwebsite/Laravel-Excel
-        return back()->with('success', 'Data arsip berhasil diunggah.');
+        $request->validate([
+            'archives' => 'required|array|min:1',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $organizationId = $request->user()->organization_id ?? 1;
+            $archives = $request->input('archives');
+
+            foreach ($archives as $archiveData) {
+                // Determine dates
+                $startDate = null;
+                $endDate = null;
+                $classificationCode = substr(strval($archiveData['kodeKlasifikasi']), 0, 255);
+                
+                if (isset($archiveData['children']) && count($archiveData['children']) > 0) {
+                    $startDate = $this->parseIndonesianDate($archiveData['tanggalTertua'] ?? null);
+                    $endDate = $this->parseIndonesianDate($archiveData['tanggalTermuda'] ?? null);
+                }
+
+                // Kalkulasi JRA (Jadwal Retensi Arsip)
+                $retentionInactiveDate = null;
+                $retentionDestructionDate = null;
+
+                if ($endDate) {
+                    $schedule = \App\Models\RetentionSchedule::where('code', $classificationCode)->first();
+                    if ($schedule) {
+                        $endCarbon = \Carbon\Carbon::parse($endDate);
+                        
+                        // Aktif + Inaktif
+                        $retentionInactiveDate = $endCarbon->copy()->addYears($schedule->active_retention)->format('Y-m-d');
+                        $retentionDestructionDate = \Carbon\Carbon::parse($retentionInactiveDate)->addYears($schedule->inactive_retention)->format('Y-m-d');
+                    }
+                }
+
+                \App\Models\Archive::create([
+                    'organization_id' => $organizationId,
+                    'archive_number' => substr(strval($archiveData['noDefinitif']), 0, 255),
+                    'definitive_number' => substr(strval($archiveData['noDefinitif']), 0, 255),
+                    'temporary_number' => substr(strval($archiveData['noArsipSementara'] ?? ''), 0, 255),
+                    'archivist_name' => substr(strval($archiveData['namaArsiparis'] ?? ''), 0, 255),
+                    'series' => substr(strval($archiveData['seri'] ?? ''), 0, 255),
+                    'sub_series' => substr(strval($archiveData['masalah'] ?? ''), 0, 255),
+                    'classification_code' => $classificationCode,
+                    'file_number' => substr(strval($archiveData['noBerkas'] ?? ''), 0, 255),
+                    'description' => $archiveData['berkasInformasi'] ?? null,
+                    'status' => 'Aktif',
+                    'year' => date('Y'),
+                    'type' => 'Daftar Arsip',
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'retention_inactive_date' => $retentionInactiveDate,
+                    'retention_destruction_date' => $retentionDestructionDate,
+                    'is_notified' => false,
+                ]);
+            }
+
+            DB::commit();
+            return redirect()->route('archives.index')->with('success', count($archives) . ' data arsip berhasil diimpor.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal mengimpor data: ' . $e->getMessage());
+        }
+    }
+
+    protected function parseIndonesianDate($dateStr)
+    {
+        if (!$dateStr) return null;
+        $dateStr = trim($dateStr);
+        
+        // 1. Jika hanya Tahun (4 digit angka saja) -> Menjadi 1 Januari
+        if (is_numeric($dateStr) && strlen($dateStr) === 4) {
+            return $dateStr . '-01-01';
+        }
+
+        $months = [
+            'Januari' => 'January', 'Februari' => 'February', 'Maret' => 'March', 'April' => 'April',
+            'Mei' => 'May', 'Juni' => 'June', 'Juli' => 'July', 'Agustus' => 'August',
+            'September' => 'September', 'Oktober' => 'October', 'November' => 'November', 'Desember' => 'December'
+        ];
+        
+        $translatedDate = $dateStr;
+        foreach ($months as $id => $en) {
+            if (stripos($dateStr, $id) !== false) {
+                $translatedDate = str_ireplace($id, $en, $dateStr);
+                break;
+            }
+        }
+
+        try {
+            // Cek apakah ada format Tanggal (DD) dalam string
+            // Jika polanya "Oktober 2013" (tanpa angka tanggal di depan), paksa jadi tanggal 1
+            if (preg_match('/^[a-zA-Z]+\s+\d{4}$/', trim($translatedDate))) {
+                return \Carbon\Carbon::parse("1 " . $translatedDate)->format('Y-m-d');
+            }
+
+            // Jika ada tanggal lengkap "28 Oktober 2013" atau format standar lainnya
+            return \Carbon\Carbon::parse($translatedDate)->format('Y-m-d');
+        } catch (\Exception $e) {
+            // Fallback: Cari tahun 4 digit jika semua gagal
+            if (preg_match('/\b(19|20)\d{2}\b/', $dateStr, $matches)) {
+                return $matches[0] . '-01-01';
+            }
+            return null;
+        }
     }
 
     public function followUp(Request $request, Archive $archive)

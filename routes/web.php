@@ -15,6 +15,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'user'])->name('notifications');
         Route::get('/upload', [\App\Http\Controllers\ArchiveController::class, 'upload'])->name('upload');
         Route::post('/upload', [\App\Http\Controllers\ArchiveController::class, 'store'])->name('archives.store');
+        Route::get('/archives', [\App\Http\Controllers\ArchiveController::class, 'index'])->name('archives.index');
         Route::post('/archives/{archive}/follow-up', [\App\Http\Controllers\ArchiveController::class, 'followUp'])->name('archives.follow-up');
     });
 

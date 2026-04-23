@@ -1,20 +1,22 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, router } from '@inertiajs/react';
 import { BreadcrumbItem } from '@/types';
-import { Flame, ArrowRight, Star, FileSignature, CheckCircle2, Upload, X, Archive, Handshake } from 'lucide-react';
+import { Flame, ArrowRight, Star, FileSignature, CheckCircle2, Upload, X, Archive, Handshake, Calendar, Timer } from 'lucide-react';
 import { useState } from 'react';
 
 interface Notification {
     id: number;
     archive_number: string;
+    archive_id: number;
+    action_type: 'Musnah' | 'Inaktif' | 'Permanen';
+    action_date: string;
+    notif_description: string;
     type: string;
-    status: string; // 'Musnah', 'Inaktif', 'Permanen'
-    year: number;
-    description?: string;
 }
 
 interface Props {
     notifications: Notification[];
+    simulationDate: string;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -22,7 +24,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Notifikasi', href: '/notifications' },
 ];
 
-export default function Notifications({ notifications = [] }: Props) {
+export default function Notifications({ notifications = [], simulationDate }: Props) {
     const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
     const [step, setStep] = useState(1);
     const { data, setData, post, processing, reset } = useForm({
@@ -30,14 +32,13 @@ export default function Notifications({ notifications = [] }: Props) {
         action_type: '',
     });
 
-    // Filtering logic (Mocking data for complete visual demo if props are empty)
-    const musnahList = notifications.filter(n => n.status === 'Musnah');
-    const inaktifList = notifications.filter(n => n.status === 'Inaktif');
-    const permanenList = notifications.filter(n => n.status === 'Permanen');
+    const musnahList = notifications.filter(n => n.action_type === 'Musnah');
+    const inaktifList = notifications.filter(n => n.action_type === 'Inaktif');
+    const permanenList = notifications.filter(n => n.action_type === 'Permanen');
 
-    const triggerAction = (notif: Notification, action: string) => {
+    const triggerAction = (notif: Notification) => {
         setSelectedNotif(notif);
-        setData('action_type', action);
+        setData('action_type', `Berita Acara ${notif.action_type}`);
         setStep(1);
     };
 
@@ -45,7 +46,7 @@ export default function Notifications({ notifications = [] }: Props) {
         e.preventDefault();
         if (!selectedNotif) return;
 
-        post(`/archives/${selectedNotif.id}/follow-up`, {
+        post(`/archives/${selectedNotif.archive_id}/follow-up`, {
             onSuccess: () => {
                 reset();
                 setSelectedNotif(null);
@@ -54,23 +55,45 @@ export default function Notifications({ notifications = [] }: Props) {
         });
     };
 
+    const handleSimulationDateChange = (date: string) => {
+        router.get('/notifications', { simulation_date: date }, { preserveState: true });
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Notifikasi Retensi" />
 
             <div className="p-8 bg-[#F0F4F9] min-h-screen">
-                <header className="mb-12">
-                    <h1 className="text-3xl font-black text-[#223771] tracking-tighter uppercase mb-1">Notifikasi Retensi</h1>
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Pemberitahuan jadwal retensi arsip yang jatuh tempo beserta tindak lanjutnya.</p>
+                <header className="mb-12 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                    <div>
+                        <h1 className="text-3xl font-black text-[#223771] tracking-tighter uppercase mb-1">Notifikasi Retensi</h1>
+                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Pemberitahuan jadwal retensi arsip yang jatuh tempo beserta tindak lanjutnya.</p>
+                    </div>
+
+                    {/* Simulation Picker */}
+                    <div className="bg-white p-4 rounded-[28px] shadow-sm border border-gray-100 flex items-center gap-4">
+                        <div className="size-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0">
+                            <Timer className="size-5" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Simulasi Waktu Sekarang</label>
+                            <input 
+                                type="date" 
+                                value={simulationDate}
+                                onChange={(e) => handleSimulationDateChange(e.target.value)}
+                                className="bg-transparent border-none p-0 focus:ring-0 text-[#223771] font-black uppercase text-xs cursor-pointer"
+                            />
+                        </div>
+                    </div>
                 </header>
 
                 <div className="max-w-4xl space-y-12">
                     
                     {/* 1. Musnah Group */}
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 border-l-4 border-amber-400 pl-4 py-1">
+                        <div className="flex items-center gap-2 border-l-4 border-red-500 pl-4 py-1">
                             <h2 className="text-sm font-black text-[#223771] uppercase tracking-widest">AKAN DIMUSNAHKAN</h2>
-                            <span className="bg-amber-100 text-amber-600 text-[10px] font-black px-2 py-0.5 rounded-full">{musnahList.length}</span>
+                            <span className="bg-red-100 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-full">{musnahList.length}</span>
                         </div>
                         <div className="space-y-4 ml-5">
                             {musnahList.length > 0 ? musnahList.map((notif) => (
@@ -78,11 +101,11 @@ export default function Notifications({ notifications = [] }: Props) {
                                     key={notif.id} 
                                     notif={notif} 
                                     icon={<Flame className="size-6" />} 
-                                    iconBg="bg-amber-50 text-amber-500"
+                                    iconBg="bg-red-50 text-red-500"
                                     actionIcon={<FileSignature className="size-4" />}
-                                    actionLabel="Berita Acara Pemusnahan"
+                                    actionLabel="Upload Berita Acara Pemusnahan"
                                     actionBtnClass="border-red-200 text-red-500 hover:bg-red-500 hover:text-white"
-                                    onAction={() => triggerAction(notif, 'Berita Acara Pemusnahan')}
+                                    onAction={() => triggerAction(notif)}
                                 />
                             )) : <EmptyState message="Tidak ada jadwal pemusnahan." />}
                         </div>
@@ -102,9 +125,9 @@ export default function Notifications({ notifications = [] }: Props) {
                                     icon={<ArrowRight className="size-6" />} 
                                     iconBg="bg-blue-50 text-blue-500"
                                     actionIcon={<Archive className="size-4" />}
-                                    actionLabel="Berita Acara Pemindahan Inaktif"
+                                    actionLabel="Upload Berita Acara Inaktif"
                                     actionBtnClass="border-blue-200 text-blue-500 hover:bg-blue-500 hover:text-white"
-                                    onAction={() => triggerAction(notif, 'Berita Acara Pemindahan Inaktif')}
+                                    onAction={() => triggerAction(notif)}
                                 />
                             )) : <EmptyState message="Tidak ada jadwal pemindahan inaktif." />}
                         </div>
@@ -124,9 +147,9 @@ export default function Notifications({ notifications = [] }: Props) {
                                     icon={<Star className="size-6" />} 
                                     iconBg="bg-green-50 text-green-500"
                                     actionIcon={<Handshake className="size-4" />}
-                                    actionLabel="Serahkan Ke Statis (LKD)"
+                                    actionLabel="Upload Berita Acara Statis"
                                     actionBtnClass="border-green-200 text-green-600 hover:bg-green-600 hover:text-white"
-                                    onAction={() => triggerAction(notif, 'Berita Acara Penyerahan Statis')}
+                                    onAction={() => triggerAction(notif)}
                                 />
                             )) : <EmptyState message="Tidak ada jadwal penyerahan permanen." />}
                         </div>
@@ -213,13 +236,19 @@ export default function Notifications({ notifications = [] }: Props) {
 
 function NotificationCard({ notif, icon, iconBg, actionIcon, actionLabel, actionBtnClass, onAction }: any) {
     return (
-        <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-6 group hover:translate-x-1 transition-all">
+        <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 flex flex-col lg:flex-row items-center gap-6 group hover:translate-x-1 transition-all">
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-gray-200/50 ${iconBg}`}>
                 {icon}
             </div>
-            <div className="grow text-center md:text-left">
-                <h6 className="font-black text-[#223771] text-base leading-none uppercase tracking-tight">{notif.type}</h6>
-                <p className="text-gray-500 text-xs font-bold leading-relaxed mt-2 italic">{notif.description || `Masa retensi berkas ${notif.archive_number} telah habis. Segera tindak lanjuti.`}</p>
+            <div className="grow text-center lg:text-left">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-2 mb-2 lg:mb-0">
+                   <h6 className="font-black text-[#223771] text-base leading-none uppercase tracking-tight">{notif.type}</h6>
+                   <div className="flex items-center gap-1 text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full w-fit mx-auto lg:mx-0">
+                      <Calendar className="size-3" />
+                      JATUH TEMPO: {new Date(notif.action_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                   </div>
+                </div>
+                <p className="text-gray-500 text-xs font-bold leading-relaxed mt-1 italic">{notif.notif_description}</p>
             </div>
             <button 
                 onClick={onAction}

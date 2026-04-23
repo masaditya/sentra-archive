@@ -32,24 +32,28 @@ interface Stats {
 
 interface Props {
     stats: Stats;
+    yearlyData: {
+        labels: string[];
+        datasets: {
+            aktif: number[];
+            inaktif: number[];
+            musnah: number[];
+            permanen: number[];
+        }
+    };
+    topOrganizations: {
+        id: number;
+        name: string;
+        count: number;
+        percent: number;
+    }[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard Utama', href: '/admin/dashboard' },
 ];
 
-export default function AdminDashboard({ stats }: Props) {
-    // Mock data for years
-    const yearlyData = {
-        labels: ['2023', '2024', '2025', '2026', '2027'],
-        datasets: {
-            aktif: [1200, 1800, 2400, 3000, 1500],
-            inaktif: [1200, 1500, 1500, 3600, 4500],
-            musnah: [600, 1200, 1500, 900, 600],
-            permanen: [600, 750, 900, 750, 900]
-        }
-    };
-
+export default function AdminDashboard({ stats, yearlyData, topOrganizations }: Props) {
     const [selectedStats, setSelectedStats] = useState({
         archives: stats.totalArchives,
         orgs: stats.totalOrganizations,
@@ -226,6 +230,43 @@ export default function AdminDashboard({ stats }: Props) {
                                 Reset ke Global
                             </button>
                         )}
+                    </div>
+                </div>
+
+                {/* Top Organizations Section */}
+                <div className="mt-8 grid grid-cols-1 md:grid-cols-1 gap-8">
+                    <div className="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <h5 className="text-xl font-black text-[#223771]">PERINGKAT OPD TERAKTIF</h5>
+                                <p className="text-gray-400 text-xs font-bold leading-none mt-1">Berdasarkan jumlah volume arsip yang telah diunggah ke sistem</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            {topOrganizations.map((org, index) => (
+                                <div key={org.id} className="group cursor-pointer">
+                                    <div className="flex justify-between items-end mb-2">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-black text-gray-400 group-hover:bg-[#223771] group-hover:text-white transition-all">
+                                                {index + 1}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-black text-gray-800 uppercase group-hover:text-[#4285F4] transition-colors">{org.name}</p>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{org.count.toLocaleString()} Dokumen Arsip</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm font-black text-[#223771]">{org.percent}%</p>
+                                    </div>
+                                    <div className="w-full h-2 bg-gray-50 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-linear-to-r from-[#4285F4] to-[#223771] transition-all duration-1000 ease-out" 
+                                            style={{ width: `${org.percent}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
