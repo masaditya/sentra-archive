@@ -23,9 +23,35 @@ class ArchiveController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
+        $retentionSchedules = \App\Models\RetentionSchedule::where('is_classification', 0)
+            ->whereNotNull('active_retention')
+            ->orderBy('code')
+            ->limit(30)
+            ->get(['code', 'name', 'active_retention', 'inactive_retention', 'final_disposition']);
+
         return Inertia::render('user/archives/index', [
-            'archives' => $archives
+            'archives' => $archives,
+            'retentionSchedules' => $retentionSchedules
         ]);
+    }
+
+    public function searchRetentionSchedules(Request $request)
+    {
+        $search = $request->query('search');
+        
+        $schedules = \App\Models\RetentionSchedule::where('is_classification', 0)
+            ->whereNotNull('active_retention')
+            ->when($search, function ($query, $search) {
+                return $query->where(function($q) use ($search) {
+                    $q->where('code', 'like', "%{$search}%")
+                      ->orWhere('name', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('code')
+            ->limit(30)
+            ->get(['code', 'name', 'active_retention', 'inactive_retention', 'final_disposition']);
+
+        return response()->json($schedules);
     }
 
     public function store(Request $request)
@@ -96,6 +122,42 @@ class ArchiveController extends Controller
         }
     }
 
+    public function validate(Request $request)
+    {
+        $request->validate([
+            'archives' => 'required|array',
+        ]);
+
+        $organizationId = $request->user()->organization_id ?? 1;
+        $archives = $request->input('archives');
+        
+        $valid = [];
+        $duplicates = [];
+
+        // Pre-fetch existing definitive numbers for this organization
+        $existingNumbers = \App\Models\Archive::where('organization_id', $organizationId)
+            ->pluck('definitive_number')
+            ->toArray();
+
+        foreach ($archives as $archive) {
+            $noDefinitif = strval($archive['noDefinitif'] ?? '');
+            
+            if (in_array($noDefinitif, $existingNumbers)) {
+                $duplicates[] = $archive;
+            } else {
+                $valid[] = $archive;
+                // Add to existing numbers to prevent duplicates within the same batch if not already there
+                // (though the Excel might have internal duplicates)
+                $existingNumbers[] = $noDefinitif;
+            }
+        }
+
+        return response()->json([
+            'valid' => $valid,
+            'duplicates' => $duplicates
+        ]);
+    }
+
     protected function parseIndonesianDate($dateStr)
     {
         if (!$dateStr) return null;
@@ -157,5 +219,30 @@ class ArchiveController extends Controller
         $archive->update(['is_notified' => false]); 
 
         return back()->with('success', 'Tindakan berhasil dicatat.');
+    }
+
+    public function update(Request $request, Archive $archive)
+    {
+        $validated = $request->validate([
+            'archive_number' => 'required|string|max:255',
+            'series' => 'nullable|string|max:255',
+            'sub_series' => 'nullable|string|max:255',
+            'classification_code' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'status' => 'required|string|in:Aktif,Inaktif,Musnah,Permanen',
+        ]);
+
+        $archive->update($validated);
+
+        return back()->with('success', 'Data arsip berhasil diperbarui.');
+    }
+
+    public function destroy(Archive $archive)
+    {
+        $archive->delete();
+
+        return back()->with('success', 'Data arsip berhasil dihapus.');
     }
 }

@@ -1,11 +1,19 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { BreadcrumbItem } from '@/types';
-import { FileSpreadsheet, Upload, Download, CheckCircle2, ChevronDown, ChevronRight, Table as TableIcon, Loader2 } from 'lucide-react';
+import { FileSpreadsheet, Upload, Download, CheckCircle2, ChevronDown, ChevronRight, Table as TableIcon, Loader2, Trash2, AlertCircle, ShieldCheck } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useState } from 'react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -18,6 +26,9 @@ export default function UploadData() {
     const [fileName, setFileName] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+    const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
+    const [validationResult, setValidationResult] = useState<{ valid: any[], duplicates: any[] } | null>(null);
+    const [isValidating, setIsValidating] = useState(false);
     
     // Pagination logic
     const totalPages = Math.ceil(parsedData.length / itemsPerPage);
@@ -137,16 +148,67 @@ export default function UploadData() {
         reader.readAsBinaryString(file);
     };
 
-    const submit = (e: React.FormEvent) => {
-        e.preventDefault();
-        post('/upload');
+    const removeItem = (index: number) => {
+        const actualIndex = startIndex + index;
+        const newData = [...parsedData];
+        newData.splice(actualIndex, 1);
+        setParsedData(newData);
+        setData('archives', newData);
+        
+        // Adjust current page if needed
+        const newTotalPages = Math.ceil(newData.length / itemsPerPage);
+        if (currentPage > newTotalPages && newTotalPages > 0) {
+            setCurrentPage(newTotalPages);
+        }
+    };
+
+    const handleStartImport = async () => {
+        if (parsedData.length === 0) return;
+        
+        setIsValidating(true);
+        try {
+            const response = await fetch('/api/archives/validate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                },
+                body: JSON.stringify({ archives: parsedData }),
+            });
+            const result = await response.json();
+            setValidationResult(result);
+            setIsValidationModalOpen(true);
+        } catch (error) {
+            console.error('Validation failed:', error);
+            toast.error('Gagal memvalidasi data. Silakan coba lagi.');
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
+    const submit = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        
+        // Use only valid data if validation result exists
+        const dataToSubmit = validationResult ? validationResult.valid : parsedData;
+        
+        if (dataToSubmit.length === 0) {
+            toast.error('Tidak ada data valid untuk diimpor.');
+            return;
+        }
+
+        router.post('/upload', { archives: dataToSubmit }, {
+            onSuccess: () => {
+                setIsValidationModalOpen(false);
+            }
+        });
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Upload Data Arsip" />
 
-            <div className="p-6 max-w-4xl mx-auto">
+            <div className="p-6 max-w-6xl mx-auto">
                 <header className="mb-8 text-center">
                     <h1 className="text-3xl font-extrabold text-[#223771] mb-2 text-center">Upload Data Arsip</h1>
                     <p className="text-gray-500">Unggah daftar arsip OPD Anda sekaligus menggunakan file Excel (.xls, .xlsx) atau CSV.</p>
@@ -216,11 +278,16 @@ export default function UploadData() {
 
                         <div className="text-center">
                             <button 
-                                type="submit" 
-                                disabled={processing || data.archives.length === 0}
+                                type="button"
+                                onClick={handleStartImport}
+                                disabled={processing || isValidating || parsedData.length === 0}
                                 className="w-full py-4 bg-[#223771] text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-900/20 hover:bg-[#1A295A] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                             >
-                                {processing ? 'Sedang Memproses...' : (
+                                {isValidating ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" /> Memvalidasi Data...
+                                    </>
+                                ) : (
                                     <>
                                         <Upload className="w-5 h-5" /> Mulai Import Data
                                     </>
@@ -255,7 +322,7 @@ export default function UploadData() {
                                         <th className="px-6 py-5">Klasifikasi</th>
                                         <th className="px-6 py-5">Informasi Berkas</th>
                                         <th className="px-6 py-5">Rentang Waktu</th>
-                                        <th className="px-8 py-5 text-center">Detail</th>
+                                        <th className="px-8 py-5 text-center w-24">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
@@ -302,12 +369,13 @@ export default function UploadData() {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-center">
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center font-black text-gray-400 group-hover:bg-[#4285F4] group-hover:text-white transition-all shadow-sm">
-                                                        {item.children?.length || 0}
-                                                    </div>
-                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Items</span>
-                                                </div>
+                                                <button 
+                                                    onClick={() => removeItem(idx)}
+                                                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                                    title="Hapus baris ini"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -383,6 +451,69 @@ export default function UploadData() {
                         <p className="text-xs text-gray-500 leading-relaxed">Sistem akan otomatis menghitung jadwal retensi dan memberi notifikasi.</p>
                     </div>
                 </div>
+
+                {/* Validation Modal */}
+                <Dialog open={isValidationModalOpen} onOpenChange={setIsValidationModalOpen}>
+                    <DialogContent className="sm:max-w-[500px] bg-white rounded-[40px] border-none shadow-2xl p-0 overflow-hidden">
+                        <div className="p-10">
+                            <div className="w-20 h-20 bg-blue-50 text-[#223771] rounded-[24px] flex items-center justify-center mx-auto mb-6">
+                                <ShieldCheck className="size-10" />
+                            </div>
+                            <DialogHeader>
+                                <DialogTitle className="text-2xl font-black text-[#223771] uppercase tracking-tighter text-center mb-2">Konfirmasi Import Data</DialogTitle>
+                                <DialogDescription className="text-center text-sm font-bold text-gray-400 leading-relaxed">
+                                    Sistem telah memvalidasi data Anda. Berikut adalah ringkasan hasilnya:
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="mt-8 space-y-4">
+                                <div className="flex items-center justify-between p-4 bg-green-50 rounded-2xl border border-green-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-green-500 shadow-sm">
+                                            <CheckCircle2 className="size-5" />
+                                        </div>
+                                        <span className="text-sm font-black text-green-700 uppercase tracking-widest">Siap Import</span>
+                                    </div>
+                                    <span className="text-xl font-black text-green-700">{validationResult?.valid.length || 0}</span>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-red-50 rounded-2xl border border-red-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-red-500 shadow-sm">
+                                            <AlertCircle className="size-5" />
+                                        </div>
+                                        <span className="text-sm font-black text-red-700 uppercase tracking-widest">Duplikat (Lewati)</span>
+                                    </div>
+                                    <span className="text-xl font-black text-red-700">{validationResult?.duplicates.length || 0}</span>
+                                </div>
+                            </div>
+
+                            {validationResult?.duplicates.length ? (
+                                <p className="mt-6 text-[10px] text-center text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
+                                    Data duplikat terdeteksi berdasarkan Nomor Definitif yang sudah ada di sistem untuk organisasi Anda.
+                                </p>
+                            ) : null}
+                        </div>
+
+                        <div className="flex gap-2 p-6 bg-gray-50/50 border-t border-gray-100">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setIsValidationModalOpen(false)}
+                                className="flex-1 rounded-2xl border-gray-200 text-gray-500 font-bold uppercase text-[10px] tracking-widest h-12"
+                            >
+                                Batal
+                            </Button>
+                            <Button 
+                                onClick={() => submit()}
+                                disabled={processing || !validationResult?.valid.length}
+                                className="flex-2 rounded-2xl bg-[#223771] hover:bg-[#1A295A] text-white font-black uppercase text-[10px] tracking-widest h-12 shadow-lg shadow-blue-900/20"
+                            >
+                                {processing ? <Loader2 className="size-4 animate-spin mr-2" /> : <Upload className="size-4 mr-2" />}
+                                Lanjutkan Import ({validationResult?.valid.length || 0})
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );
