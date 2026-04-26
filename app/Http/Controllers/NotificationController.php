@@ -14,9 +14,10 @@ class NotificationController extends Controller
         $simulationDate = $request->input('simulation_date') ? \Carbon\Carbon::parse($request->input('simulation_date')) : now();
         $oneMonthFromNow = $simulationDate->copy()->addMonth();
 
-        $notifications = Archive::where('organization_id', $organizationId)
+        $notifications = Archive::with('classification')
+            ->where('organization_id', $organizationId)
             ->where('is_notified', false)
-            ->where('status', 'Aktif')
+            ->whereIn('status', ['Aktif', 'Inaktif']) // Bisa aktif atau inaktif
             ->where(function($query) use ($oneMonthFromNow) {
                 // Tampilkan yang sudah lewat atau yang akan datang dlm 1 bln
                 $query->whereNotNull('retention_inactive_date')
@@ -26,30 +27,33 @@ class NotificationController extends Controller
             })
             ->get()
             ->map(function($archive) use ($oneMonthFromNow, $simulationDate) {
-                // Prioritas Musnah/Permanen
+                $schedule = $archive->classification;
+                
+                // Prioritas 1: Musnah/Permanen (Setelah Inaktif)
                 if ($archive->retention_destruction_date && $archive->retention_destruction_date <= $oneMonthFromNow) {
-                    $isPermanent = str_contains(strtolower($archive->series ?? ''), 'permanen') || 
-                                  str_contains(strtolower($archive->sub_series ?? ''), 'permanen');
+                    $finalAction = $schedule ? $schedule->final_disposition : 'Musnah';
+                    $isPermanent = strtolower($finalAction) === 'permanen';
                     
                     $archive->action_type = $isPermanent ? 'Permanen' : 'Musnah';
                     $archive->action_date = $archive->retention_destruction_date;
                     
                     if ($archive->retention_destruction_date < $simulationDate->format('Y-m-d')) {
-                        $archive->notif_description = 'TERLEWAT: Sewajarnya sudah ' . ($isPermanent ? 'Permanen' : 'Dimusnahkan') . ' pada ' . \Carbon\Carbon::parse($archive->retention_destruction_date)->format('d/m/Y');
+                        $archive->notif_description = 'TERLEWAT: Seharusnya sudah ' . ($isPermanent ? 'Permanen' : 'Dimusnahkan') . ' pada ' . \Carbon\Carbon::parse($archive->retention_destruction_date)->format('d/m/Y');
                     } else {
                         $archive->notif_description = $isPermanent 
-                            ? 'Mendekati batas waktu inaktif. Dijadwalkan menjadi Permanen.' 
-                            : 'Masa retensi inaktif akan habis. Dijadwalkan untuk proses Pemusnahan.';
+                            ? 'Masa retensi inaktif habis. Berdasarkan JRA, arsip ini harus menjadi PERMANEN.' 
+                            : 'Masa retensi inaktif habis. Berdasarkan JRA, arsip ini harus DIMUSNAHKAN.';
                     }
                 } 
-                else if ($archive->retention_inactive_date && $archive->retention_inactive_date <= $oneMonthFromNow) {
+                // Prioritas 2: Pindah ke Inaktif (Setelah Aktif)
+                else if ($archive->retention_inactive_date && $archive->retention_inactive_date <= $oneMonthFromNow && $archive->status === 'Aktif') {
                     $archive->action_type = 'Inaktif';
                     $archive->action_date = $archive->retention_inactive_date;
                     
                     if ($archive->retention_inactive_date < $simulationDate->format('Y-m-d')) {
-                        $archive->notif_description = 'TERLEWAT: Sewajarnya sudah pindah ke Inaktif pada ' . \Carbon\Carbon::parse($archive->retention_inactive_date)->format('d/m/Y');
+                        $archive->notif_description = 'TERLEWAT: Seharusnya sudah pindah ke Inaktif pada ' . \Carbon\Carbon::parse($archive->retention_inactive_date)->format('d/m/Y');
                     } else {
-                        $archive->notif_description = 'Mendekati masa inaktif. Segera pindahkan ke ruang penyimpanan inaktif.';
+                        $archive->notif_description = 'Masa aktif berakhir. Segera pindahkan ke ruang penyimpanan inaktif sesuai jadwal JRA.';
                     }
                 }
                 
@@ -65,15 +69,43 @@ class NotificationController extends Controller
         ]);
     }
 
-    public function admin()
+    public function admin(Request $request)
     {
-        $notifications = Archive::with('organization')
-            ->where('is_notified', true)
+        $simulationDate = $request->input('simulation_date') ? \Carbon\Carbon::parse($request->input('simulation_date')) : now();
+        $oneMonthFromNow = $simulationDate->copy()->addMonth();
+
+        $notifications = Archive::with(['organization', 'retentionActions', 'classification'])
+            ->where(function($query) use ($oneMonthFromNow) {
+                $query->whereNotNull('retention_inactive_date')
+                      ->where('retention_inactive_date', '<=', $oneMonthFromNow)
+                      ->orWhereNotNull('retention_destruction_date')
+                      ->where('retention_destruction_date', '<=', $oneMonthFromNow);
+            })
+            ->whereIn('status', ['Aktif', 'Inaktif']) // Hanya yang belum diproses tuntas
             ->get()
+            ->map(function($archive) use ($oneMonthFromNow, $simulationDate) {
+                $schedule = $archive->classification;
+                
+                // Tentukan apa yang sedang jatuh tempo
+                if ($archive->retention_destruction_date && $archive->retention_destruction_date <= $oneMonthFromNow) {
+                    $finalAction = $schedule ? $schedule->final_disposition : 'Musnah';
+                    $archive->due_type = strtolower($finalAction) === 'permanen' ? 'Permanen' : 'Musnah';
+                    $archive->due_date = $archive->retention_destruction_date;
+                } else {
+                    $archive->due_type = 'Inaktif';
+                    $archive->due_date = $archive->retention_inactive_date;
+                }
+
+                $archive->is_followed_up = $archive->retentionActions->isNotEmpty();
+                $archive->latest_action = $archive->retentionActions->last();
+
+                return $archive;
+            })
             ->groupBy('organization_id');
 
         return Inertia::render('admin/notifications', [
             'notificationsGrouped' => $notifications,
+            'simulationDate' => $simulationDate->format('Y-m-d'),
         ]);
     }
 }

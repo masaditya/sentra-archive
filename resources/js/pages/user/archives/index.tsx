@@ -31,7 +31,11 @@ interface Archive {
     start_date: string;
     end_date: string;
     classification?: {
+        code: string;
         name: string;
+        active_retention: number;
+        inactive_retention: number;
+        final_disposition: string;
     };
 }
 
@@ -133,6 +137,12 @@ export default function ArchivesIndex({ archives, retentionSchedules }: Props) {
             start_date: archive.start_date || '',
             end_date: archive.end_date || '',
         });
+
+        // Add the current classification to options if it's not there
+        if (archive.classification && !options.find(o => o.code === archive.classification_code)) {
+            setOptions(prev => [archive.classification!, ...prev]);
+        }
+
         setIsEditModalOpen(true);
     };
 
@@ -450,22 +460,22 @@ export default function ArchivesIndex({ archives, retentionSchedules }: Props) {
                                     <div className="space-y-1">
                                         <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Retensi Aktif</p>
                                         <p className="text-xs font-black text-[#223771]">
-                                            {retentionSchedules.find(s => s.code === data.classification_code)?.active_retention} Tahun
+                                            {(options.find(s => s.code === data.classification_code)?.active_retention ?? selectedArchive?.classification?.active_retention) ?? '-'} Tahun
                                         </p>
                                     </div>
                                     <div className="space-y-1 border-x border-gray-200 px-4">
                                         <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Retensi Inaktif</p>
                                         <p className="text-xs font-black text-[#223771]">
-                                            {retentionSchedules.find(s => s.code === data.classification_code)?.inactive_retention} Tahun
+                                            {(options.find(s => s.code === data.classification_code)?.inactive_retention ?? selectedArchive?.classification?.inactive_retention) ?? '-'} Tahun
                                         </p>
                                     </div>
                                     <div className="space-y-1 pl-4 text-right">
                                         <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Penyusutan Akhir</p>
                                         <span className={`
                                             px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter
-                                            ${retentionSchedules.find(s => s.code === data.classification_code)?.final_disposition === 'Musnah' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}
+                                            ${(options.find(s => s.code === data.classification_code)?.final_disposition ?? selectedArchive?.classification?.final_disposition) === 'Musnah' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}
                                         `}>
-                                            {retentionSchedules.find(s => s.code === data.classification_code)?.final_disposition}
+                                            {(options.find(s => s.code === data.classification_code)?.final_disposition ?? selectedArchive?.classification?.final_disposition) ?? '-'}
                                         </span>
                                     </div>
                                 </div>

@@ -68,29 +68,12 @@ class ArchiveController extends Controller
 
             foreach ($archives as $archiveData) {
                 // Determine dates
-                $startDate = null;
-                $endDate = null;
+                $startDate = $this->parseIndonesianDate($archiveData['tanggalTertua'] ?? null);
+                $endDate = $this->parseIndonesianDate($archiveData['tanggalTermuda'] ?? null);
                 $classificationCode = substr(strval($archiveData['kodeKlasifikasi']), 0, 255);
-                
-                if (isset($archiveData['children']) && count($archiveData['children']) > 0) {
-                    $startDate = $this->parseIndonesianDate($archiveData['tanggalTertua'] ?? null);
-                    $endDate = $this->parseIndonesianDate($archiveData['tanggalTermuda'] ?? null);
-                }
 
-                // Kalkulasi JRA (Jadwal Retensi Arsip)
-                $retentionInactiveDate = null;
-                $retentionDestructionDate = null;
-
-                if ($endDate) {
-                    $schedule = \App\Models\RetentionSchedule::where('code', $classificationCode)->first();
-                    if ($schedule) {
-                        $endCarbon = \Carbon\Carbon::parse($endDate);
-                        
-                        // Aktif + Inaktif
-                        $retentionInactiveDate = $endCarbon->copy()->addYears($schedule->active_retention)->format('Y-m-d');
-                        $retentionDestructionDate = \Carbon\Carbon::parse($retentionInactiveDate)->addYears($schedule->inactive_retention)->format('Y-m-d');
-                    }
-                }
+                // Kalkulasi JRA
+                $jra = $this->calculateJRADates($classificationCode, $endDate);
 
                 \App\Models\Archive::create([
                     'organization_id' => $organizationId,
@@ -108,8 +91,8 @@ class ArchiveController extends Controller
                     'type' => 'Daftar Arsip',
                     'start_date' => $startDate,
                     'end_date' => $endDate,
-                    'retention_inactive_date' => $retentionInactiveDate,
-                    'retention_destruction_date' => $retentionDestructionDate,
+                    'retention_inactive_date' => $jra['inactive_date'],
+                    'retention_destruction_date' => $jra['destruction_date'],
                     'is_notified' => false,
                 ]);
             }
@@ -234,9 +217,38 @@ class ArchiveController extends Controller
             'status' => 'required|string|in:Aktif,Inaktif,Musnah,Permanen',
         ]);
 
+        // Recalculate JRA if classification or end_date changed
+        $jra = $this->calculateJRADates($validated['classification_code'], $validated['end_date']);
+        $validated['retention_inactive_date'] = $jra['inactive_date'];
+        $validated['retention_destruction_date'] = $jra['destruction_date'];
+
         $archive->update($validated);
 
         return back()->with('success', 'Data arsip berhasil diperbarui.');
+    }
+
+    protected function calculateJRADates($code, $endDate)
+    {
+        $inactiveDate = null;
+        $destructionDate = null;
+
+        if ($endDate) {
+            $schedule = \App\Models\RetentionSchedule::where('code', $code)->first();
+            if ($schedule) {
+                $endCarbon = \Carbon\Carbon::parse($endDate);
+                
+                // Pindah ke Inaktif = Tanggal Terakhir + Masa Aktif
+                $inactiveDate = $endCarbon->copy()->addYears($schedule->active_retention)->format('Y-m-d');
+                
+                // Musnah/Permanen = Tanggal Inaktif + Masa Inaktif
+                $destructionDate = \Carbon\Carbon::parse($inactiveDate)->addYears($schedule->inactive_retention)->format('Y-m-d');
+            }
+        }
+
+        return [
+            'inactive_date' => $inactiveDate,
+            'destruction_date' => $destructionDate
+        ];
     }
 
     public function destroy(Archive $archive)

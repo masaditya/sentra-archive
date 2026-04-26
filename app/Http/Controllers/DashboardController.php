@@ -99,16 +99,34 @@ class DashboardController extends Controller
         }
 
         // Fetch top organizations by archive count
-        $topOrganizations = Organization::withCount('archives')
+        $topOrganizations = Organization::withCount([
+                'archives',
+                'archives as aktif_count' => function ($query) {
+                    $query->where('status', 'Aktif');
+                },
+                'archives as inaktif_count' => function ($query) {
+                    $query->where('status', 'Inaktif');
+                },
+                'archives as musnah_count' => function ($query) {
+                    $query->where('status', 'Musnah');
+                },
+                'archives as permanen_count' => function ($query) {
+                    $query->where('status', 'Permanen');
+                }
+            ])
             ->orderBy('archives_count', 'desc')
             ->limit(5)
             ->get()
-            ->map(function($org) {
+            ->map(function($org) use ($stats) {
                 return [
                     'id' => $org->id,
                     'name' => $org->name,
                     'count' => $org->archives_count,
-                    'percent' => Archive::count() > 0 ? round(($org->archives_count / Archive::count()) * 100) : 0
+                    'aktif' => $org->aktif_count,
+                    'inaktif' => $org->inaktif_count,
+                    'musnah' => $org->musnah_count,
+                    'permanen' => $org->permanen_count,
+                    'percent' => $stats['totalArchives'] > 0 ? round(($org->archives_count / $stats['totalArchives']) * 100) : 0
                 ];
             });
 

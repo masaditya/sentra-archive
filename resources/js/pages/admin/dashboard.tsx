@@ -45,6 +45,10 @@ interface Props {
         id: number;
         name: string;
         count: number;
+        aktif: number;
+        inaktif: number;
+        musnah: number;
+        permanen: number;
         percent: number;
     }[];
 }
@@ -253,7 +257,24 @@ export default function AdminDashboard({ stats, yearlyData, topOrganizations }: 
                                             </div>
                                             <div>
                                                 <p className="text-sm font-black text-gray-800 uppercase group-hover:text-[#4285F4] transition-colors">{org.name}</p>
-                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{org.count.toLocaleString()} Dokumen Arsip</p>
+                                                <div className="flex items-center gap-3 mt-1">
+                                                    <div className="flex items-center gap-1">
+                                                        <div className="size-1.5 bg-green-500 rounded-full"></div>
+                                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">{org.aktif.toLocaleString()} AKTIF</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <div className="size-1.5 bg-blue-500 rounded-full"></div>
+                                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">{org.inaktif.toLocaleString()} INAKTIF</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <div className="size-1.5 bg-red-500 rounded-full"></div>
+                                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">{org.musnah.toLocaleString()} MUSNAH</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <div className="size-1.5 bg-amber-500 rounded-full"></div>
+                                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">{org.permanen.toLocaleString()} PERMANEN</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <p className="text-sm font-black text-[#223771]">{org.percent}%</p>

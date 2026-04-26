@@ -31,6 +31,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/organizations/{organization}', [\App\Http\Controllers\Admin\OrganizationController::class, 'update'])->name('organizations.update');
         Route::delete('/organizations/{organization}', [\App\Http\Controllers\Admin\OrganizationController::class, 'destroy'])->name('organizations.destroy');
         Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'admin'])->name('notifications');
+        Route::resource('jra', \App\Http\Controllers\Admin\RetentionScheduleController::class);
     });
 });
 

@@ -34,9 +34,14 @@ export function AppSidebar() {
             icon: Bell,
         },
         {
+            title: 'Manajemen JRA',
+            href: '/admin/jra',
+            icon: Layers,
+        },
+        {
             title: 'Pengaturan',
             href: '/settings/profile',
-            icon: Layers,
+            icon: Settings,
         },
     ] : [
         {

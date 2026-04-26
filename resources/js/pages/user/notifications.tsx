@@ -12,6 +12,9 @@ interface Notification {
     action_date: string;
     notif_description: string;
     type: string;
+    series?: string;
+    sub_series?: string;
+    description?: string;
 }
 
 interface Props {
@@ -27,6 +30,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Notifications({ notifications = [], simulationDate }: Props) {
     const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
     const [step, setStep] = useState(1);
+    const [tempDate, setTempDate] = useState(simulationDate);
     const { data, setData, post, processing, reset } = useForm({
         file: null as File | null,
         action_type: '',
@@ -55,8 +59,8 @@ export default function Notifications({ notifications = [], simulationDate }: Pr
         });
     };
 
-    const handleSimulationDateChange = (date: string) => {
-        router.get('/notifications', { simulation_date: date }, { preserveState: true });
+    const handleSimulationDateChange = () => {
+        router.get('/notifications', { simulation_date: tempDate }, { preserveState: true });
     };
 
     return (
@@ -71,19 +75,34 @@ export default function Notifications({ notifications = [], simulationDate }: Pr
                     </div>
 
                     {/* Simulation Picker */}
-                    <div className="bg-white p-4 rounded-[28px] shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div className="size-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center shrink-0">
-                            <Timer className="size-5" />
+                    <div className="bg-white p-2 pl-6 rounded-[32px] shadow-xl shadow-blue-900/5 border border-gray-100 flex items-center gap-6 animate-in slide-in-from-right duration-500">
+                        <div className="flex items-center gap-4">
+                            <div className="size-10 bg-[#223771] text-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/20">
+                                <Timer className="size-5" />
+                            </div>
+                            <div className="space-y-0.5">
+                                <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Simulasi Waktu</label>
+                                <input 
+                                    type="date" 
+                                    value={tempDate}
+                                    onChange={(e) => setTempDate(e.target.value)}
+                                    className="bg-transparent border-none p-0 focus:ring-0 text-[#223771] font-black uppercase text-sm cursor-pointer"
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-1">
-                            <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Simulasi Waktu Sekarang</label>
-                            <input 
-                                type="date" 
-                                value={simulationDate}
-                                onChange={(e) => handleSimulationDateChange(e.target.value)}
-                                className="bg-transparent border-none p-0 focus:ring-0 text-[#223771] font-black uppercase text-xs cursor-pointer"
-                            />
-                        </div>
+                        
+                        <button 
+                            onClick={handleSimulationDateChange}
+                            disabled={tempDate === simulationDate}
+                            className={`
+                                px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all
+                                ${tempDate === simulationDate 
+                                    ? 'bg-gray-50 text-gray-300 cursor-not-allowed' 
+                                    : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95'}
+                            `}
+                        >
+                            Cek Jadwal
+                        </button>
                     </div>
                 </header>
 
@@ -240,15 +259,25 @@ function NotificationCard({ notif, icon, iconBg, actionIcon, actionLabel, action
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-gray-200/50 ${iconBg}`}>
                 {icon}
             </div>
-            <div className="grow text-center lg:text-left">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-2 mb-2 lg:mb-0">
-                   <h6 className="font-black text-[#223771] text-base leading-none uppercase tracking-tight">{notif.type}</h6>
+            <div className="grow text-center lg:text-left space-y-1">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-2 mb-1">
+                   <h6 className="font-black text-[#223771] text-base leading-none uppercase tracking-tight">
+                       {notif.series || 'Tanpa Nama Berkas'} 
+                       {notif.sub_series && <span className="text-gray-400 font-bold mx-1">/</span>}
+                       {notif.sub_series && <span className="text-gray-400">{notif.sub_series}</span>}
+                   </h6>
                    <div className="flex items-center gap-1 text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full w-fit mx-auto lg:mx-0">
                       <Calendar className="size-3" />
                       JATUH TEMPO: {new Date(notif.action_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                    </div>
                 </div>
-                <p className="text-gray-500 text-xs font-bold leading-relaxed mt-1 italic">{notif.notif_description}</p>
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{notif.archive_number}</p>
+                    {notif.description && (
+                        <p className="text-[11px] font-bold text-gray-400 line-clamp-1">{notif.description}</p>
+                    )}
+                    <p className="text-gray-500 text-xs font-bold leading-relaxed italic">{notif.notif_description}</p>
+                </div>
             </div>
             <button 
                 onClick={onAction}
