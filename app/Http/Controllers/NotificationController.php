@@ -108,4 +108,37 @@ class NotificationController extends Controller
             'simulationDate' => $simulationDate->format('Y-m-d'),
         ]);
     }
+
+    public function export(Request $request)
+    {
+        $simulationDate = $request->input('simulation_date') ? \Carbon\Carbon::parse($request->input('simulation_date')) : now();
+        $oneMonthFromNow = $simulationDate->copy()->addMonth();
+
+        $notifications = Archive::with(['organization', 'classification'])
+            ->where(function($query) use ($oneMonthFromNow) {
+                $query->whereNotNull('retention_inactive_date')
+                      ->where('retention_inactive_date', '<=', $oneMonthFromNow)
+                      ->orWhereNotNull('retention_destruction_date')
+                      ->where('retention_destruction_date', '<=', $oneMonthFromNow);
+            })
+            ->whereIn('status', ['Aktif', 'Inaktif'])
+            ->get()
+            ->map(function($archive) use ($oneMonthFromNow) {
+                $schedule = $archive->classification;
+                if ($archive->retention_destruction_date && $archive->retention_destruction_date <= $oneMonthFromNow) {
+                    $finalAction = $schedule ? $schedule->final_disposition : 'Musnah';
+                    $archive->due_type = strtolower($finalAction) === 'permanen' ? 'Permanen' : 'Musnah';
+                    $archive->due_date = $archive->retention_destruction_date;
+                } else {
+                    $archive->due_type = 'Inaktif';
+                    $archive->due_date = $archive->retention_inactive_date;
+                }
+                return $archive;
+            });
+
+        return view('reports.notifications', [
+            'notifications' => $notifications,
+            'date' => $simulationDate->format('d F Y')
+        ]);
+    }
 }

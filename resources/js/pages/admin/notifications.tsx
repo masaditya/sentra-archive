@@ -138,9 +138,14 @@ export default function AdminNotifications({ notificationsGrouped, simulationDat
                             <Bell className="w-16 h-16 text-[#F4B942] mx-auto mb-6 drop-shadow-lg" />
                             <h2 className="text-2xl font-black mb-2">Total {Object.values(notificationsGrouped).flat().length} Tindakan</h2>
                             <p className="text-white/60 text-sm mb-8 leading-relaxed">Terdapat tindakan arsip yang memerlukan tinjauan pemindahan atau pemusnahan dari berbagai OPD pada bulan ini.</p>
-                            <button className="w-full bg-[#F4B942] text-[#223771] font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:translate-y-[-2px] transition-transform">
+                            <a 
+                                href={`/admin/notifications/export?simulation_date=${simulationDate}`}
+                                target="_blank"
+                                className="w-full bg-[#F4B942] text-[#223771] font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:translate-y-[-2px] transition-transform shadow-xl shadow-[#F4B942]/20"
+                            >
+                                <CheckCircle2 className="size-5" />
                                 Cetak Rekapitulasi
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
