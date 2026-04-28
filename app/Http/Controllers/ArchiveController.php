@@ -198,8 +198,20 @@ class ArchiveController extends Controller
             'file_path' => $path,
         ]);
 
-        // Update archive status or flag it as processed
-        $archive->update(['is_notified' => false]); 
+        $status = $archive->status;
+        $actionLower = strtolower($request->action_type);
+        if (str_contains($actionLower, 'inaktif')) {
+            $status = 'Inaktif';
+        } elseif (str_contains($actionLower, 'musnah')) {
+            $status = 'Musnah';
+        } elseif (str_contains($actionLower, 'permanen')) {
+            $status = 'Permanen';
+        }
+
+        $archive->update([
+            'status' => $status,
+            'is_notified' => false,
+        ]);
 
         return back()->with('success', 'Tindakan berhasil dicatat.');
     }

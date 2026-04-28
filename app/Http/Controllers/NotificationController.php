@@ -91,7 +91,7 @@ class NotificationController extends Controller
                     $finalAction = $schedule ? $schedule->final_disposition : 'Musnah';
                     $archive->due_type = strtolower($finalAction) === 'permanen' ? 'Permanen' : 'Musnah';
                     $archive->due_date = $archive->retention_destruction_date;
-                } else {
+                } else if ($archive->retention_inactive_date && $archive->retention_inactive_date <= $oneMonthFromNow && $archive->status === 'Aktif') {
                     $archive->due_type = 'Inaktif';
                     $archive->due_date = $archive->retention_inactive_date;
                 }
@@ -101,6 +101,7 @@ class NotificationController extends Controller
 
                 return $archive;
             })
+            ->filter(fn($a) => isset($a->due_type))
             ->groupBy('organization_id');
 
         return Inertia::render('admin/notifications', [
@@ -129,12 +130,13 @@ class NotificationController extends Controller
                     $finalAction = $schedule ? $schedule->final_disposition : 'Musnah';
                     $archive->due_type = strtolower($finalAction) === 'permanen' ? 'Permanen' : 'Musnah';
                     $archive->due_date = $archive->retention_destruction_date;
-                } else {
+                } else if ($archive->retention_inactive_date && $archive->retention_inactive_date <= $oneMonthFromNow && $archive->status === 'Aktif') {
                     $archive->due_type = 'Inaktif';
                     $archive->due_date = $archive->retention_inactive_date;
                 }
                 return $archive;
-            });
+            })
+            ->filter(fn($a) => isset($a->due_type));
 
         return view('reports.notifications', [
             'notifications' => $notifications,
